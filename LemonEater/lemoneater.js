@@ -44,6 +44,7 @@ function LemonEater(placeX, placeY, length, direction) {
 	this.dx = 0;
 	this.dy = 0;
 	this.setDirection = setEaterDirection;
+	this.tick = eaterTick;
 	this.setDirection(direction);
 	this.x = placeX * 1;
 	this.y = placeY * 1;
@@ -83,16 +84,16 @@ function setEaterDirection(direction) {
  * A single tick of the LemonEater
  */
 function eaterTick() {
-	this.x+=this.dx;
-	if (this.x<0)
-		this.x=width-1;
-	if (this.x>=width)
-		this.x=0;
-	this.y+=this.dy;
-	if (this.y<0)
-		this.y=heigth-1;
-	if (this.y>=height)
-		this.y=0;
+	this.x += this.dx;
+	if (this.x < 0)
+		this.x = width - 1;
+	if (this.x >= width)
+		this.x = 0;
+	this.y += this.dy;
+	if (this.y < 0)
+		this.y = heigth - 1;
+	if (this.y >= height)
+		this.y = 0;
 	// TODO perform some checks if we are alive.
 	// TODO Make something for animation.
 }
@@ -115,11 +116,16 @@ var testCellY = height - 1;
  * Initialize the game
  */
 function lemonInit() {
-	var koo = new LemonEater(5, 1, 3, 'w');
-	alert('dx: '+ koo.dx + ' dy: ' + koo.dy);
-	koo.setDirection('e');
-	alert('dx: '+ koo.dx + ' dy: ' + koo.dy);
 	lemonDrawBoard();
+	// Add listeners and focus.
+	var gameArea = document.getElementById('lemon-focus-controller');
+	gameArea.onkeydown = function(e) {
+		//alert(e.keyCode);
+	};
+	gameArea.onkeyup = function(e) {
+		// something e.keyCode
+	};
+	gameArea.focus();
 	setInterval("lemonTick()", refreshRate);
 }
 
@@ -136,6 +142,7 @@ function lemonDrawBoard() {
 		}
 		b += "</span><br />";
 	}
+	b += '<input type="button" id="lemon-focus-controller" value="something to recieve keyboard commands" />';
 	document.getElementById("lemonEater").innerHTML = b;
 }
 

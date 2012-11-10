@@ -1,0 +1,33 @@
+.lemonEater
+{
+	font-family:"Lucida Console", Monospace;
+	background-color:#000000;
+	color:#ffffff;
+	margin:1ex;
+	padding:1ex;
+}
+.lemonEater .lemon-background
+{
+	background-color:#222222;
+	margin:0ex;
+	padding:0ex;
+}
+.lemonEater .lemon-eater-head
+{
+	background-color:#22ff33;
+	margin:0ex;
+	padding:0ex;
+}
+.lemonEater .lemon-eater-body
+{
+	background-color:#11cc22;
+	margin:0ex;
+	padding:0ex;
+}
+
+.lemonEater .lemon-lemon
+{
+	background-color:#ffff33;
+	margin:0ex;
+	padding:0ex;
+}

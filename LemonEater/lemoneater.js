@@ -79,6 +79,23 @@ function setEaterDirection(direction) {
 		this.dx = 0;
 	}
 }
+/**
+ * A single tick of the LemonEater
+ */
+function eaterTick() {
+	this.x+=this.dx;
+	if (this.x<0)
+		this.x=width-1;
+	if (this.x>=width)
+		this.x=0;
+	this.y+=this.dy;
+	if (this.y<0)
+		this.y=heigth-1;
+	if (this.y>=height)
+		this.y=0;
+	// TODO perform some checks if we are alive.
+	// TODO Make something for animation.
+}
 
 /*
  * The game lemon eater follows.

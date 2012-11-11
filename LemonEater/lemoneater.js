@@ -47,7 +47,8 @@ function LemonLemon(place) {
  * @returns null
  */
 function LemonEater(place, length, direction, context) {
-	// TODO head is never repainted. Drawn length just increases. Death seems impossible.
+	this.alive = true;
+	this.allowDirectionChange = true;
 	this.ownerBoard = context;
 	this.lemonsEaten = 0;
 	this.previousLength = 1;
@@ -117,22 +118,36 @@ function eaterDrawBody(point) {
  * @returns null
  */
 function setEaterDirection(direction) {
-	switch (direction) {
-	case 's':
-		this.dy = 1;
-		this.dx = 0;
-		break;
-	case 'w':
-		this.dy = 0;
-		this.dx = -1;
-		break;
-	case 'e':
-		this.dy = 0;
-		this.dx = 1;
-		break;
-	default:
-		this.dy = -1;
-		this.dx = 0;
+	if (this.allowDirectionChange) {
+		switch (direction) {
+		case 's':
+			if (this.dy != -1) {
+				this.dy = 1;
+				this.dx = 0;
+				this.allowDirectionChange = false;
+			}
+			break;
+		case 'w':
+			if (this.dx != 1) {
+				this.dy = 0;
+				this.dx = -1;
+				this.allowDirectionChange = false;
+			}
+			break;
+		case 'e':
+			if (this.dx != -1) {
+				this.dy = 0;
+				this.dx = 1;
+				this.allowDirectionChange = false;
+			}
+			break;
+		default:
+			if (this.dy != 1) {
+				this.dy = -1;
+				this.dx = 0;
+				this.allowDirectionChange = false;
+			}
+		}
 	}
 }
 
@@ -150,10 +165,12 @@ function eaterTick() {
 		this.y = height - 1;
 	if (this.y >= height)
 		this.y = 0;
+	this.allowDirectionChange = true;
 	var point = new LemonPoint(this.x, this.y);
 	// Survive check
 	var pointNotOk = this.contains(point) || this.ownerBoard.isWall(point);
-	if (pointNotOk) {
+	if (pointNotOk || !this.alive) {
+		this.alive = false;
 		// TODO We have died. Do something!
 	} else {
 		// consume lemon check
@@ -178,12 +195,12 @@ function eaterTick() {
 		this.positions[0] = point;
 	}
 	// TODO TESTCODE
-	var testout='';
-	for (var i=0; i<this.position.length; i++) {
-		testout += '('+this.position[i].x+' , '+this.position[i].y+') ';
+	var testout = '';
+	for ( var i = 0; i < this.position.length; i++) {
+		testout += '(' + this.position[i].x + ' , ' + this.position[i].y + ') ';
 	}
 	alert(testout);
-	document.getElementById('test').innerHTML=testout;
+	document.getElementById('test').innerHTML = testout;
 }
 
 /**
@@ -194,7 +211,7 @@ function eaterTick() {
  *            a String representation of the board
  */
 function LemonBoard(boardAsString) {
-	this.lemon = new LemonLemon(new LemonPoint(-1,-1));
+	this.lemon = new LemonLemon(new LemonPoint(-1, -1));
 	this.walls = new Array();
 	for ( var y = 0; y < height; y++) {
 		this.walls[y] = new Array();
@@ -327,7 +344,7 @@ var gameBoard;
 function lemonInit() {
 	lemonDrawBoard();
 	// TODO this is testing things:
-	gameBoard=new LemonBoard("");
+	gameBoard = new LemonBoard("");
 	started = true;
 	// TODO End testing things
 	// Add listeners and focus.
@@ -401,17 +418,14 @@ function lemonTick() {
 	if (started) {
 		lemonGameTick();
 	}
-/*
-	// Testing animation, since game cannot start at this moment, no problem.
-	document.getElementById('lemon-cell-x' + testCellX + '-y' + testCellY).innerHTML = empty;
-	document.getElementById('lemon-cell-x' + testCellX + '-y' + testCellY).className = "lemon-eater-body";
-	testCellX--;
-	if (testCellX < 0)
-		testCellX = width - 1;
-	testCellY--;
-	if (testCellY < 0)
-		testCellY = height - 1;
-*/
+	/*
+	 * // Testing animation, since game cannot start at this moment, no problem.
+	 * document.getElementById('lemon-cell-x' + testCellX + '-y' +
+	 * testCellY).innerHTML = empty; document.getElementById('lemon-cell-x' +
+	 * testCellX + '-y' + testCellY).className = "lemon-eater-body";
+	 * testCellX--; if (testCellX < 0) testCellX = width - 1; testCellY--; if
+	 * (testCellY < 0) testCellY = height - 1;
+	 */
 }
 
 /**

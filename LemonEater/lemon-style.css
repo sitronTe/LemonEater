@@ -18,9 +18,17 @@
 	margin:0ex;
 	padding:0ex;
 }
+
 .lemonEater .lemon-eater-body
 {
 	background-color:#11cc22;
+	margin:0ex;
+	padding:0ex;
+}
+
+.lemonEater .lemon-eater-death
+{
+	background-color:#ee0022;
 	margin:0ex;
 	padding:0ex;
 }

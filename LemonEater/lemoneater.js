@@ -215,13 +215,6 @@ function eaterTick() {
 		}
 		this.positions[0] = point;
 	}
-	// TODO TESTCODE
-	var testout = '';
-	for ( var i = 0; i < this.positions.length; i++) {
-		testout += '(' + this.positions[i].x + ' , ' + this.positions[i].y
-				+ ') ';
-	}
-	document.getElementById('test').innerHTML = testout;
 }
 
 /**
@@ -424,7 +417,6 @@ function lemonDrawBoard() {
 		b += "</span><br />";
 	}
 	b += '<input type="button" id="lemon-focus-controller" value="something to recieve keyboard commands" />';
-	b += '<div id="test">test</div>';
 	document.getElementById("lemonEater").innerHTML = b;
 }
 

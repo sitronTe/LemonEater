@@ -70,6 +70,7 @@ function LemonEater(place, length, direction, context) {
 	// Animation functions
 	this.drawHead = eaterDrawHead;
 	this.drawBody = eaterDrawBody;
+	this.drawDeath = eaterDrawDeath;
 	this.drawHead(this.positions[0]);
 }
 
@@ -88,6 +89,16 @@ function eaterContains(point) {
 		}
 	}
 	return false;
+}
+
+/**
+ * Draws eater death to this position
+ * 
+ * @param point
+ *            where the dead element is drawn
+ */
+function eaterDrawDeath(point) {
+	document.getElementById('lemon-cell-x' + point.x + '-y' + point.y).className = 'lemon-eater-death';
 }
 
 /**
@@ -170,8 +181,18 @@ function eaterTick() {
 	// Survive check
 	var pointNotOk = this.contains(point) || this.ownerBoard.isWall(point);
 	if (pointNotOk || !this.alive) {
-		this.alive = false;
-		// TODO We have died. Do something!
+		if (this.alive) {
+			this.alive = false;
+			for ( var i = 0; i < this.positions.length; i++) {
+				// Draw all segments as dead
+				this.drawDeath(this.positions[i]);
+			}
+		} else if (this.positions.length > 0) {
+			var killSegment = this.positions.pop();
+			this.ownerBoard.release(killSegment);
+		} else {
+			this.ownerBoard.killEater();
+		}
 	} else {
 		// consume lemon check
 		if (this.ownerBoard.consumeLemon(point)) {
@@ -196,10 +217,10 @@ function eaterTick() {
 	}
 	// TODO TESTCODE
 	var testout = '';
-	for ( var i = 0; i < this.position.length; i++) {
-		testout += '(' + this.position[i].x + ' , ' + this.position[i].y + ') ';
+	for ( var i = 0; i < this.positions.length; i++) {
+		testout += '(' + this.positions[i].x + ' , ' + this.positions[i].y
+				+ ') ';
 	}
-	alert(testout);
 	document.getElementById('test').innerHTML = testout;
 }
 
@@ -220,8 +241,8 @@ function LemonBoard(boardAsString) {
 			this.walls[y][x] = 0;
 		}
 	}
-	var start = new LemonPoint(5, 5);
-	this.eater = new LemonEater(start, 1, 'e', this);
+	this.start = new LemonPoint(5, 5);
+	this.eater = new LemonEater(this.start, 1, 'e', this);
 	this.isWall = boardWall;
 	this.isLemon = boardIsLemon;
 	this.tick = boardTick;
@@ -230,6 +251,15 @@ function LemonBoard(boardAsString) {
 	this.spawnLemon();
 	this.consumeLemon = boardConsume;
 	this.setEaterDirection = boardEaterDirection;
+	this.killEater = boardSpawnEater;
+}
+
+/**
+ * Spawns a LemonEater at start location.
+ */
+function boardSpawnEater() {
+	this.eater = new LemonEater(this.start, 1, 'e', this);
+	// TODO Should not this do something with lives or something?
 }
 
 /**

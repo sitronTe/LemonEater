@@ -173,10 +173,17 @@ function eaterTick() {
 		// add to our positions. This is done after item removal to ensure that
 		// length is body length without head.
 		for ( var i = this.positions.length; i > 0; i--) {
-			this.positions[i] = this.positiond[i - 1];
+			this.positions[i] = this.positions[i - 1];
 		}
 		this.positions[0] = point;
 	}
+	// TODO TESTCODE
+	var testout='';
+	for (var i=0; i<this.position.length; i++) {
+		testout += '('+this.position[i].x+' , '+this.position[i].y+') ';
+	}
+	alert(testout);
+	document.getElementById('test').innerHTML=testout;
 }
 
 /**
@@ -370,6 +377,7 @@ function lemonDrawBoard() {
 		b += "</span><br />";
 	}
 	b += '<input type="button" id="lemon-focus-controller" value="something to recieve keyboard commands" />';
+	b += '<div id="test">test</div>';
 	document.getElementById("lemonEater").innerHTML = b;
 }
 

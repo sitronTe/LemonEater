@@ -31,3 +31,21 @@
 	margin:0ex;
 	padding:0ex;
 }
+
+.lemonEater .lemon-wall-1
+{
+	background-color:#ff3333;
+	margin:0ex;
+	padding:0ex;
+}
+
+.lemonEater input
+{
+	font-family:"Lucida Console", Monospace;
+	background-color:#000000;
+	outline:#000000,none,thin;
+	border:none;
+	color:#222222;
+	width:106.9ex;
+	height:2ex;
+}

@@ -1,6 +1,6 @@
 .lemonEater
 {
-	font-family:"Lucida Console", Monospace;
+	font-family:"Lucida Console", monospace;
 	background-color:#000000;
 	color:#ffffff;
 	margin:1ex;
@@ -49,7 +49,7 @@
 
 .lemonEater input
 {
-	font-family:"Lucida Console", Monospace;
+	font-family:"Lucida Console", monospace;
 	background-color:#000000;
 	outline:#000000,none,thin;
 	border:none;

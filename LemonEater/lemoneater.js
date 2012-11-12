@@ -5,6 +5,7 @@
  * 	LemonEater -> an eater of lemons.
  * 	LemonBoard -> a place to move around. Loaded with lemons!
  */
+// TODO Make something keep track of lives and points. And start counting them!
 
 /**
  * Creates a new LemonPoint. Sets x and y values according to arguments.
@@ -188,8 +189,11 @@ function eaterTick() {
 				this.drawDeath(this.positions[i]);
 			}
 		} else if (this.positions.length > 0) {
-			var killSegment = this.positions.pop();
+			var rem = Math.floor(this.positions.length/9) + 1;
+			for (var i=0; i<rem; i++) {
+				var killSegment = this.positions.pop();
 			this.ownerBoard.release(killSegment);
+			}
 		} else {
 			this.ownerBoard.killEater();
 		}
@@ -225,6 +229,7 @@ function eaterTick() {
  *            a String representation of the board
  */
 function LemonBoard(boardAsString) {
+	// TODO Make way to analyze string so that we can get different boards.
 	this.lemon = new LemonLemon(new LemonPoint(-1, -1));
 	this.walls = new Array();
 	for ( var y = 0; y < height; y++) {

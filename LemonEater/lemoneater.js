@@ -1,11 +1,105 @@
 /*
  * Objects area -
+ * 	LemonCounter -> Keeps track of points and lives.
  * 	LemonPoint -> a 2 dimensional point.
  * 	LemonLemon -> a lemon to eat! Yummi!
  * 	LemonEater -> an eater of lemons.
  * 	LemonBoard -> a place to move around. Loaded with lemons!
  */
-// TODO Make something keep track of lives and points. And start counting them!
+
+/**
+ * Creates a new counter for this game.
+ * 
+ * @param lives
+ *            how many lives you are supposed to have.
+ */
+function LemonCounter(lives) {
+	this.points = 0;
+	this.lemonsEaten = 0;
+	this.lives = lives * 1;
+	this.eaterDied = counterKill;
+	this.tick = counterTick;
+	this.eat = counterEat;
+	this.printLives = counterOutLives;
+	this.printLives();
+	this.printPoints = counterOutPoints;
+	this.printPoints();
+	this.printEatenLemons = counterOutLemonsEaten;
+	this.printEatenLemons();
+}
+
+/**
+ * counts down a life and removes some points.
+ */
+function counterKill() {
+	this.lives--;
+	this.points - 50;
+	this.lemonsEaten = 0;
+	if (this.points < 0) {
+		this.points = 0;
+	}
+	if (this.lives < 0) {
+		// TODO GAME OVER!!!
+	}
+	this.printPoints();
+	this.printLives();
+}
+
+/**
+ * A tick of a LemonCounter
+ */
+function counterTick() {
+	if (this.points > 0)
+		this.points--;
+	this.printPoints();
+}
+
+/**
+ * To keep track of point and lemons eaten.
+ */
+function counterEat() {
+	this.lemonsEaten++;
+	this.points += 100;
+	this.points += 10 * this.lemonsEaten;
+	this.printPoints();
+	this.printEatenLemons();
+}
+
+function counterOutLives() {
+	// TODO Make this be nicer
+	var l = convertNumberArray(this.lives);
+	for ( var i = 0; i < l.length; i++) {
+		var t = width - 1;
+		t -= i;
+		document.getElementById('lemon-cell-x' + t + '-y0').innerHTML = l[i];
+	}
+}
+
+function counterOutPoints() {
+	// TODO Make this be nicer
+	var l = convertNumberArray(this.points);
+	for ( var i = 0; i < l.length; i++) {
+		var t = l.length - i;
+		document.getElementById('lemon-cell-x' + t + '-y0').innerHTML = l[i];
+	}
+}
+
+function counterOutLemonsEaten() {
+	// TODO
+}
+
+// TODO Make not needed
+function convertNumberArray(number) {
+	var r = new Array();
+	var i = 0;
+	r[i] = number % 10;
+	while (number > 10) {
+		i++;
+		number = Math.floor(number / 10);
+		r[i] = number % 10;
+	}
+	return r;
+}
 
 /**
  * Creates a new LemonPoint. Sets x and y values according to arguments.
@@ -189,10 +283,10 @@ function eaterTick() {
 				this.drawDeath(this.positions[i]);
 			}
 		} else if (this.positions.length > 0) {
-			var rem = Math.floor(this.positions.length/9) + 1;
-			for (var i=0; i<rem; i++) {
+			var rem = Math.floor(this.positions.length / 9) + 1;
+			for ( var i = 0; i < rem; i++) {
 				var killSegment = this.positions.pop();
-			this.ownerBoard.release(killSegment);
+				this.ownerBoard.release(killSegment);
 			}
 		} else {
 			this.ownerBoard.killEater();
@@ -228,8 +322,10 @@ function eaterTick() {
  * @param boardAsString
  *            a String representation of the board
  */
-function LemonBoard(boardAsString) {
+function LemonBoard(boardAsString, counter) {
 	// TODO Make way to analyze string so that we can get different boards.
+	// TODO Decide board size, and redraw as necessary
+	this.counter = counter;
 	this.lemon = new LemonLemon(new LemonPoint(-1, -1));
 	this.walls = new Array();
 	for ( var y = 0; y < height; y++) {
@@ -253,11 +349,12 @@ function LemonBoard(boardAsString) {
 }
 
 /**
- * Spawns a LemonEater at start location.
+ * Spawns a LemonEater at start location, and notifies counter to count down
+ * lives.
  */
 function boardSpawnEater() {
 	this.eater = new LemonEater(this.start, 1, 'e', this);
-	// TODO Should not this do something with lives or something?
+	this.counter.eaterDied();
 }
 
 /**
@@ -290,6 +387,7 @@ function boardConsume(point) {
 	var isLemon = this.isLemon(point);
 	if (isLemon) {
 		this.lemon = this.spawnLemon();
+		this.counter.eat();
 	}
 	return isLemon;
 }
@@ -349,6 +447,7 @@ function boardRelease(point) {
  */
 function boardTick() {
 	this.eater.tick();
+	this.counter.tick();
 }
 
 /*
@@ -372,33 +471,35 @@ var gameBoard;
 function lemonInit() {
 	lemonDrawBoard();
 	// TODO this is testing things:
-	gameBoard = new LemonBoard("");
+	gameBoard = new LemonBoard("", new LemonCounter(5));
 	started = true;
 	// TODO End testing things
 	// Add listeners and focus.
 	var gameArea = document.getElementById('lemon-focus-controller');
 	gameArea.onkeydown = function(e) {
-		switch (e.keyCode) {
-		case 65:
-		case 37:
-			// left
-			gameBoard.setEaterDirection('w');
-			break;
-		case 87:
-		case 38:
-			// up
-			gameBoard.setEaterDirection('n');
-			break;
-		case 68:
-		case 39:
-			// right
-			gameBoard.setEaterDirection('e');
-			break;
-		case 83:
-		case 40:
-			// down
-			gameBoard.setEaterDirection('s');
-			break;
+		if (started) {
+			switch (e.keyCode) {
+			case 65:
+			case 37:
+				// left
+				gameBoard.setEaterDirection('w');
+				break;
+			case 87:
+			case 38:
+				// up
+				gameBoard.setEaterDirection('n');
+				break;
+			case 68:
+			case 39:
+				// right
+				gameBoard.setEaterDirection('e');
+				break;
+			case 83:
+			case 40:
+				// down
+				gameBoard.setEaterDirection('s');
+				break;
+			}
 		}
 	};
 	gameArea.onkeyup = function(e) {
@@ -412,6 +513,7 @@ function lemonInit() {
  * Draws our empty game board. Must be further initialized for every level
  */
 function lemonDrawBoard() {
+	// TODO Decide if it is wanted to add a layer to draw backgrounds on
 	var b = "";
 	for ( var y = 0; y < height; y++) {
 		b += '<span id="lemon-line-' + y + '" class="lemon-background">';
@@ -445,14 +547,7 @@ function lemonTick() {
 	if (started) {
 		lemonGameTick();
 	}
-	/*
-	 * // Testing animation, since game cannot start at this moment, no problem.
-	 * document.getElementById('lemon-cell-x' + testCellX + '-y' +
-	 * testCellY).innerHTML = empty; document.getElementById('lemon-cell-x' +
-	 * testCellX + '-y' + testCellY).className = "lemon-eater-body";
-	 * testCellX--; if (testCellX < 0) testCellX = width - 1; testCellY--; if
-	 * (testCellY < 0) testCellY = height - 1;
-	 */
+	// TODO make nice little start animation that shows which buttons do what.
 }
 
 /**
@@ -460,6 +555,5 @@ function lemonTick() {
  */
 function lemonGameTick() {
 	// TODO
-	// board does not tick...
 	gameBoard.tick();
 }

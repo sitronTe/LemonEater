@@ -42,7 +42,49 @@
 
 .lemonEater .lemon-wall-1
 {
-	background-color:#ff3333;
+	background-color:#4444ff;
+	margin:0ex;
+	padding:0ex;
+}
+
+.lemonEater .lemon-wall-2
+{
+	background-color:#3333dd;
+	margin:0ex;
+	padding:0ex;
+}
+
+.lemonEater .lemon-wall-3
+{
+	background-color:#2222bb;
+	margin:0ex;
+	padding:0ex;
+}
+
+.lemonEater .lemon-wall-4
+{
+	background-color:#222299;
+	margin:0ex;
+	padding:0ex;
+}
+
+.lemonEater .lemon-wall-5
+{
+	background-color:#111177;
+	margin:0ex;
+	padding:0ex;
+}
+
+.lemonEater .lemon-wall-6
+{
+	background-color:#111155;
+	margin:0ex;
+	padding:0ex;
+}
+
+.lemonEater .lemon-wall-7
+{
+	background-color:#000033;
 	margin:0ex;
 	padding:0ex;
 }

@@ -39,10 +39,12 @@ function counterKill() {
 		this.points = 0;
 	}
 	if (this.lives < 0) {
+		this.lives = 0;
 		// TODO GAME OVER!!!
 	}
 	this.printPoints();
 	this.printLives();
+	this.printEatenLemons();
 }
 
 /**
@@ -66,39 +68,26 @@ function counterEat() {
 }
 
 function counterOutLives() {
-	// TODO Make this be nicer
-	var l = convertNumberArray(this.lives);
-	for ( var i = 0; i < l.length; i++) {
-		var t = width - 1;
-		t -= i;
-		document.getElementById('lemon-cell-x' + t + '-y0').innerHTML = l[i];
-	}
+	var l = this.lives;
+	document.getElementById('lemon-cell-x1-y1').innerHTML = l % 10;
+	l = Math.floor(l / 10);
+	document.getElementById('lemon-cell-x0-y1').innerHTML = l % 10;
 }
 
 function counterOutPoints() {
-	// TODO Make this be nicer
-	var l = convertNumberArray(this.points);
-	for ( var i = 0; i < l.length; i++) {
-		var t = l.length - i;
-		document.getElementById('lemon-cell-x' + t + '-y0').innerHTML = l[i];
+	var p = this.points;
+	for ( var i = 5; i >= 0; i--) {
+		document.getElementById('lemon-cell-x' + i + '-y0').innerHTML = p % 10;
+		p = Math.floor(p / 10);
 	}
 }
 
 function counterOutLemonsEaten() {
-	// TODO
-}
-
-// TODO Make not needed
-function convertNumberArray(number) {
-	var r = new Array();
-	var i = 0;
-	r[i] = number % 10;
-	while (number > 10) {
-		i++;
-		number = Math.floor(number / 10);
-		r[i] = number % 10;
+	var l = this.lemonsEaten;
+	for ( var i = 5; i >= 3; i--) {
+		document.getElementById('lemon-cell-x' + i + '-y1').innerHTML = l % 10;
+		l = Math.floor(l / 10);
 	}
-	return r;
 }
 
 /**
@@ -324,18 +313,33 @@ function eaterTick() {
  */
 function LemonBoard(boardAsString, counter) {
 	// TODO Make way to analyze string so that we can get different boards.
+	// First string analyser only reads signs without newlines. Prefixed size.
+	// So, board will be 80*30=2400 signs large. L is startposition. Number is
+	// wall, or not.
 	// TODO Decide board size, and redraw as necessary
+	/*
+	 * width,height,startx,starty,uncompressedwallnumbers. another sign than .
+	 * at the end indicates something more?
+	 */
+	var desciferedString = boardAsString; // will be altered later.
 	this.counter = counter;
 	this.lemon = new LemonLemon(new LemonPoint(-1, -1));
+	this.setWall = boardSetWall;
 	this.walls = new Array();
+	this.start = new LemonPoint(0, 0);
 	for ( var y = 0; y < height; y++) {
 		this.walls[y] = new Array();
 		for ( var x = 0; x < width; x++) {
-			// No walls at this moment.
-			this.walls[y][x] = 0;
+			var v = desciferedString[width * y + x];
+			if (v == 'L') {
+				this.setWall(x, y, 0);
+				this.start = new LemonPoint(x, y);
+			} else {
+				this.setWall(x, y, v * 1);
+			}
 		}
 	}
-	this.start = new LemonPoint(5, 5);
+	// TODO If end not reached, do something.
 	this.eater = new LemonEater(this.start, 1, 'e', this);
 	this.isWall = boardWall;
 	this.isLemon = boardIsLemon;
@@ -346,6 +350,25 @@ function LemonBoard(boardAsString, counter) {
 	this.consumeLemon = boardConsume;
 	this.setEaterDirection = boardEaterDirection;
 	this.killEater = boardSpawnEater;
+}
+
+/**
+ * Sets a wall segment and updates graphics.
+ * 
+ * @param x
+ *            x-position
+ * @param y
+ *            y-position
+ * @param w
+ *            wall value
+ */
+function boardSetWall(x, y, w) {
+	this.walls[y][x] = w;
+	if (w > 0)
+		document.getElementById('lemon-cell-x' + x + '-y' + y).className = 'lemon-wall-'
+				+ w;
+	else
+		document.getElementById('lemon-cell-x' + x + '-y' + y).className = '';
 }
 
 /**
@@ -471,7 +494,19 @@ var gameBoard;
 function lemonInit() {
 	lemonDrawBoard();
 	// TODO this is testing things:
-	gameBoard = new LemonBoard("", new LemonCounter(5));
+	var b = "";
+	for ( var y = 0; y < height; y++) {
+		for ( var x = 0; x < width; x++) {
+			if (x==5 && y==10) {
+				b+= 'L';
+			} else if (x == 60 || y==20) {
+				b += ((x + y) % 7) + 1;
+			} else {
+				b += '0';
+			}
+		}
+	}
+	gameBoard = new LemonBoard(b, new LemonCounter(5));
 	started = true;
 	// TODO End testing things
 	// Add listeners and focus.
@@ -505,8 +540,22 @@ function lemonInit() {
 	gameArea.onkeyup = function(e) {
 		// unused i think
 	};
-	gameArea.focus();
 	setInterval("lemonTick()", refreshRate);
+	gameArea.focus();
+}
+
+/**
+ * Sets size of board and redraws it.
+ * 
+ * @param w
+ *            new width
+ * @param h
+ *            new height
+ */
+function setSize(w, h) {
+	width = w;
+	height = h;
+	lemonDrawBoard();
 }
 
 /**

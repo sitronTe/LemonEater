@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lemon:lemon-eater xmlns:lemon="lemon-schema/"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="lemon-schema/ lemon-schema.xsd ">
+	<name>the greatest pack ever created</name>
+	<data>
+		<id>game-over</id>
+		<dimension>
+			<width>0</width>
+			<height>0</height>
+		</dimension>
+		<skippable>true</skippable>
+		<layer>
+			<description>
+				<type>background</type>
+				<dimension>
+					<width>0</width>
+					<height>0</height>
+				</dimension>
+				<location>
+					<x>0</x>
+					<y>0</y>
+				</location>
+				<move>
+					<speed>
+						<x>0</x>
+						<y>0</y>
+					</speed>
+					<wrap>true</wrap>
+					<pause>
+						<start>0</start>
+						<end>0</end>
+					</pause>
+				</move>
+				<target>1</target>
+			</description>
+			<content>
+				<cell x="0" y="0">q</cell>
+			</content>
+		</layer>
+	</data>
+</lemon:lemon-eater>

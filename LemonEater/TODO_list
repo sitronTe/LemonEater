@@ -1,0 +1,7 @@
+TODO list:
+
+Make game playable.
+
+Decide if there should be a console out for logging of different things (bg off, fg off)
+Decide if there should be an external tag showing highscore, if it should be internal or an animation.
+Refine XML schema for highscore.

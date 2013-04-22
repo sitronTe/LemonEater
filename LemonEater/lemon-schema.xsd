@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema targetNamespace="lemon-schema/" xmlns="http://www.w3.org/2001/XMLSchema"
+	xmlns:lemon="lemon-schema/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<include schemaLocation=""></include>
+	<simpleType name="targetInt">
+		<restriction base="unsignedInt">
+			<minExclusive value="0"></minExclusive>
+		</restriction>
+	</simpleType>
+	<simpleType name="cellDataContent">
+		<restriction base="string">
+			<pattern value="."></pattern>
+			<pattern value="[&amp;].+[;]"></pattern>
+		</restriction>
+	</simpleType>
+	<simpleType name="contentType">
+		<restriction base="string">
+			<enumeration value="text"></enumeration>
+			<enumeration value="background"></enumeration>
+			<enumeration value="level"></enumeration>
+		</restriction>
+	</simpleType>
+	<simpleType name="dataBaseTypes">
+		<restriction base="string">
+			<enumeration value="intro"></enumeration>
+			<enumeration value="outro"></enumeration>
+			<enumeration value="game-over"></enumeration>
+		</restriction>
+	</simpleType>
+	<simpleType name="dataIdentifier">
+		<union memberTypes="lemon:dataBaseTypes unsignedInt"></union>
+	</simpleType>
+	<complexType name="cellData">
+		<simpleContent>
+			<extension base="lemon:cellDataContent">
+				<attribute name="x" type="int" use="required"></attribute>
+				<attribute name="y" type="int" use="required"></attribute>
+			</extension>
+		</simpleContent>
+	</complexType>
+	<complexType name="dimension">
+		<sequence minOccurs="1" maxOccurs="1">
+			<element name="width" type="unsignedInt"></element>
+			<element name="height" type="unsignedInt"></element>
+		</sequence>
+	</complexType>
+	<complexType name="vector">
+		<sequence minOccurs="1" maxOccurs="1">
+			<element name="x" type="int"></element>
+			<element name="y" type="int"></element>
+		</sequence>
+	</complexType>
+	<complexType name="pause">
+		<sequence minOccurs="1" maxOccurs="1">
+			<element name="start" type="unsignedInt"></element>
+			<element name="end" type="unsignedInt"></element>
+		</sequence>
+	</complexType>
+	<complexType name="url-location">
+		<sequence minOccurs="0" maxOccurs="1">
+			<element name="scoreboard-fetch" minOccurs="0" maxOccurs="1"
+				type="anyURI"></element>
+			<element name="scoreboard-submit" minOccurs="0" maxOccurs="1"
+				type="anyURI"></element>
+			<element name="level-pack-location" minOccurs="0" maxOccurs="1"
+				type="anyURI"></element>
+		</sequence>
+	</complexType>
+	<complexType name="eater-scoreboard">
+		<sequence minOccurs="1" maxOccurs="1">
+			<element name="level-pack-name" minOccurs="1" maxOccurs="1"
+				type="string"></element>
+			<element name="entry" minOccurs="1" maxOccurs="unbounded">
+				<complexType>
+					<sequence minOccurs="1" maxOccurs="1">
+						<element name="player-name" minOccurs="1" maxOccurs="1"
+							type="string"></element>
+						<element name="final-level" minOccurs="1" maxOccurs="1"
+							type="lemon:dataIdentifier"></element>
+						<element name="score" minOccurs="1" maxOccurs="1"
+							type="unsignedInt"></element>
+						<element name="total-lemons-eaten" minOccurs="1"
+							maxOccurs="1" type="unsignedInt"></element>
+					</sequence>
+				</complexType>
+			</element>
+		</sequence>
+	</complexType>
+	<element name="lemon-eater">
+		<complexType>
+			<sequence>
+				<element name="name" minOccurs="1" maxOccurs="1" type="string"></element>
+				<element name="url-locations" minOccurs="0" maxOccurs="1"
+					type="lemon:url-location"></element>
+				<element name="scoreboard" minOccurs="0" maxOccurs="1"
+					type="lemon:eater-scoreboard"></element>
+				<element name="data" minOccurs="0" maxOccurs="unbounded">
+					<complexType>
+						<sequence minOccurs="1" maxOccurs="1">
+							<element name="id" type="lemon:dataIdentifier" minOccurs="1"
+								maxOccurs="1"></element>
+							<element name="dimension" type="lemon:dimension"
+								minOccurs="1" maxOccurs="1"></element>
+							<element name="skippable" type="boolean" minOccurs="1"
+								maxOccurs="1"></element>
+							<element name="layer" minOccurs="1" maxOccurs="3">
+								<complexType>
+									<sequence>
+										<element name="description" minOccurs="1" maxOccurs="1">
+											<complexType>
+												<sequence>
+													<element name="type" type="lemon:contentType"
+														minOccurs="1" maxOccurs="1"></element>
+													<element name="dimension" type="lemon:dimension"
+														minOccurs="1" maxOccurs="1"></element>
+													<element name="location" type="lemon:vector"
+														minOccurs="1" maxOccurs="1"></element>
+													<element name="move" minOccurs="1" maxOccurs="1">
+														<complexType>
+															<sequence>
+																<element name="speed" type="lemon:vector"
+																	minOccurs="1" maxOccurs="1"></element>
+																<element name="wrap" type="boolean" minOccurs="1"
+																	maxOccurs="1"></element>
+																<element name="pause" type="lemon:pause"
+																	minOccurs="1" maxOccurs="1"></element>
+															</sequence>
+														</complexType>
+													</element>
+													<element name="target" type="lemon:targetInt"
+														minOccurs="1" maxOccurs="1"></element>
+												</sequence>
+											</complexType>
+										</element>
+										<element name="content" minOccurs="1" maxOccurs="1">
+											<complexType>
+												<sequence>
+													<element name="cell" type="lemon:cellData"
+														minOccurs="1" maxOccurs="unbounded"></element>
+												</sequence>
+											</complexType>
+										</element>
+									</sequence>
+								</complexType>
+							</element>
+						</sequence>
+					</complexType>
+				</element>
+			</sequence>
+		</complexType>
+	</element>
+</schema>

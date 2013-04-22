@@ -5,7 +5,377 @@
  * 	LemonLemon -> a lemon to eat! Yummi!
  * 	LemonEater -> an eater of lemons.
  * 	LemonBoard -> a place to move around. Loaded with lemons!
+ *  LemonMoveableLayer -> a layer that may or may not move across screen
  */
+
+function LemonLevelPack() {
+	// TODO write this
+	// TODO Remember counter
+	this.name = null;
+	this.gameBoard = null;
+	this.textLayer = null;
+	this.background = null;
+	this.introAnimation = null;
+	this.outroAnimation = null;
+	this.gameOverAnimation = null;
+	this.urlLocations = null;
+	this.scoreboard = null;
+	this.sortedExternalDatas = null;
+	this.skippable = false;
+	this.nextLevel = -1;
+	this.tick = packTick();
+	// should bring next level
+	this.next = packNext;
+	// Should set external level pack.
+	this.setExternalLevelPack = packSetExternalLevelPack;
+	// Should cause the game over sequence to be played
+	this.gameOver = packGameOver;
+	// Should try to jump over this level (if level is skippable).
+	this.skip = packSkip;
+}
+
+function packSetExternalLevelPack(externalPack) {
+	// TODO
+	this.gameBoard = null;
+	this.textLayer = null;
+	this.background = null;
+	this.introAnimation = null;
+	this.outroAnimation = null;
+	this.gameOverAnimation = null;
+	this.skippable = false;
+	this.name = externalPack.name;
+	this.urlLocations = externalPack.urlLocations;
+	this.scoreboard = externalPack.scoreboard;
+	this.nextLevel = -1;
+	// Find intro, outro, game over and sort the rest
+	this.sortedExternalDatas = new Array();
+	var extData = externalPack.levelDatas;
+	for ( var i = 0; i < extData.length; i++) {
+		if (extData[i].idType == "intro") {
+			this.introAnimation = extData[i];
+		} else if (extData[i].idType == "outro") {
+			this.outroAnimation = extData[i];
+		} else if (extData[i].idType == "game-over") {
+			this.gameOverAnimation = extData[i];
+		} else {
+			// Sorting algorithm, insertion sort. Do not expect large, unsorted
+			// data sets.
+			var j = this.sortedExternalDatas.length;
+			var idt = extData[i].idType * 1;
+			while (j > 0 && (this.sortedExternalDatas[j - 1].idType * 1) > idt) {
+				this.sortedExternalDatas[j] = this.sortedExternalDatas[j - 1];
+				j--;
+			}
+			this.sortedExternalDatas[j] = extData[i];
+		}
+	}
+	// Starts next level. Or intro. Bases itself in that there are content of data.
+	this.next();
+}
+
+function packNext() {
+	// Checks if game pack has been set yet.
+	if (this.sortedExternalDatas == null)
+		return;
+	if (this.nextLevel == -1) {
+		// TODO load start animation, or first level
+		this.nextLevel++;
+		if (this.introAnimation == null) {
+			this.next();
+			return;
+		}
+	} else if (this.nextLevel == -2) {
+		// TODO Load game over animation.
+		this.nextLevel++;
+		if (this.gameOverAnimation == null) {
+			this.next();
+			return;
+		}
+	} else if (this.nextLevel >= this.sortedExternalDatas.length) {
+		// TODO load outro
+		this.nextLevel = -1;
+		if (this.outroAnimation == null) {
+			this.next();
+			return;
+		}
+	} else {
+		// TODO load next layer.
+	}
+	// TODO
+}
+
+function packGameOver() {
+	this.nextLevel = -2;
+	this.next();
+	// TODO Submit score. Restart level pack
+}
+
+function packSkip() {
+	if (this.skippable)
+		this.next();
+}
+
+function packTick() {
+	if (this.gameBoard != null)
+		this.gameBoard.tick();
+	if (this.textLayer != null)
+		this.textLayer.tick();
+	if (this.background != null)
+		this.background.tick();
+}
+
+// TODO Create a holder for level pack.
+// TODO level pack must be able to turn to next level
+// TODO level pack must know what to do when game is over
+/**
+ * Creates a new <code>LemonMoveableLayer</code> from the
+ * <code>LemonExternalTextOrBackgroundLayer</code> brought along.
+ */
+function LemonMovableLayer(externalLayer) {
+	this.type;
+	this.dimension;
+	this.velocity;
+	this.wrap;
+	this.pauseBeforeStart;
+	this.pauseAfterEnd;
+	this.moveables;
+	this.startPauseLeft;
+	this.endPauseLeft;
+	this.location;
+	this.mooving;
+	this.moveNow;
+	this.tick = lemonMoveTextTick;
+	this.setLayer = setNewLayer;
+	this.setLayer(externalLayer);
+}
+
+function setNewLayer(externalLayer) {
+	this.type = externalLayer.type;
+	// dimension is used for wrapping
+	dim = externalLayer.dimension;
+	this.dimension = new LemonPoint(Math.abs(dim.x), Math.abs(dim.y));
+	// location is only defined as start location
+	var loc = externalLayer.location;
+	this.velocity = externalLayer.velocity;
+	this.wrap = externalLayer.wrap;
+	this.pauseBeforeStart = externalLayer.pauseBeforeStart;
+	this.pauseAfterEnd = externalLayer.pauseAfterEnd;
+	var moves = externalLayer.moveables;
+	this.moveables = new Array();
+	// update moveables start location
+	for ( var i = 0; i < moves.length; i++) {
+		this.moveables[i] = new LemonMoveableElement(moves.location.x + loc.x,
+				moves.location.y + loc.y, moves.content);
+	}
+	// Set up counters for later use
+	this.startPauseLeft = this.pauseBeforeStart;
+	this.endPauseLeft = this.pauseAfterEnd;
+	// This objects location is used to keep track of position relative to
+	// dimension
+	this.location = new LemonPoint(0, 0);
+	// Keeps track of where in the movement cycle we are
+	this.mooving = this.startPauseLeft <= 0;
+	// Move now is a vector to keep track of how many clicks one should move
+	// each tick.
+	this.moveNow = new LemonPoint(0, 0);
+}
+
+/**
+ * Calculates how much you should move in the direction given by the number.
+ * 
+ * @param number
+ *            speed in the direction you wish to find movement.
+ * @returns {Number} how much you should move in that direction.
+ */
+function lemonCalculateMoveRatio(number) {
+	if (number < 0) {
+		return Math.ceil(number / 100);
+	} else {
+		return Math.floor(number / 100);
+	}
+}
+
+/**
+ * How a <code>LemonMoveableLayer</code> ticks.
+ */
+function lemonMoveTick() {
+	// If this layer is currently moving, make every moveable move and maybe
+	// wrap.
+	if (this.mooving) {
+		// TODO find bug when we move faster than 100, why we may get changes in
+		// stop place
+		this.moveNow.x += this.velocity.x;
+		this.moveNow.y += this.velocity.y;
+		var moveX = lemonCalculateMoveRatio(this.moveNow.x);
+		var moveY = lemonCalculateMoveRatio(this.moveNow.y);
+		if (moveX == 0 && moveY == 0) {
+			return;
+		}
+		this.moveNow.x -= 100 * moveX;
+		this.moveNow.y -= 100 * moveY;
+		var velNow = new LemonPoint(moveX, moveY);
+		var emptyMap = new Object();
+		var signMap = new Object();
+		for ( var i = 0; i < this.moveables.length; i++) {
+			this.moveables[i].move(velNow, this.wrap, this.dimension, emptyMap,
+					signMap);
+		}
+		this.location.x += Math.abs(moveX);
+		this.location.y += Math.abs(moveY);
+		// If moved a cycle horizontal, see if we should stop.
+		if (this.location.x >= this.dimension.x) {
+			this.mooving = this.endPauseLeft <= 0 && this.startPauseLeft <= 0;
+			this.location.x = 0;
+		}
+		// If moved a cycle vertical, see if we should stop.
+		if (this.location.y >= this.dimension.y) {
+			this.mooving = this.endPauseLeft <= 0 && this.startPauseLeft <= 0;
+			this.location.y = 0;
+		}
+		// Refresh text elements of board
+		for (k in signMap) {
+			var point = lemonKeyDescifer(k);
+			if (this.type == "text")
+				lemonUpdateText(point, signMap[k]);
+			else if (this.type == "background")
+				lemonUpdateBackground(point, signMap[k]);
+		}
+		for (k in emptyMap) {
+			if (emptyMap[k] != null) {
+				var point = lemonKeyDescifer(k);
+				if (this.type == "text")
+					lemonUpdateText(point, emptyMap[k]);
+				else if (this.type == "background")
+					lemonUpdateBackground(point, emptyMap[k]);
+			}
+		}
+		// If pause before start is over, start moving again
+	} else if (this.startPauseLeft > 0) {
+		this.startPauseLeft--;
+		if (this.startPauseLeft <= 0) {
+			this.mooving = true;
+			this.startPauseLeft = this.pauseBeforeStart;
+		}
+		// If pause after end is over, see if we should start moving
+	} else if (this.endPauseLeft > 0) {
+		this.endPauseLeft--;
+		if (this.endPauseLeft <= 0) {
+			this.mooving = this.startPauseLeft <= 0;
+			this.endPauseLeft = this.pauseAfterEnd;
+		}
+	}
+}
+
+function lemonUpdateText(pos, cont) {
+	document.getElementById('lemon-cell-x' + pos.x + '-y' + pos.y).innerHTML = cont;
+}
+
+function lemonUpdateBackground(pos, cont) {
+	// TODO Background here should be updated. If cont == empty background
+	// should be removed.
+}
+
+/**
+ * Creates a <code>LemonMoveableElement</code>. The element has a location,
+ * content and possibility to move.
+ * 
+ * @param x
+ *            the x localization of this element
+ * @param y
+ *            the y localization of this element
+ * @param content
+ *            the content of this element
+ */
+function LemonMoveableElement(x, y, content) {
+	this.location = new LemonPoint(x, y);
+	this.content = content;
+	this.move = lemonMoveMove;
+}
+
+/**
+ * moves the text element in the direction brought along.
+ * 
+ * @param direction
+ *            the direction to move
+ * @param wrap
+ *            boolean to say if movement should wrap
+ * @param wrapDimension
+ *            if wrapping, how far back text should move
+ * @param emptyMap
+ *            map of cells to be cleared. Key calculation done by
+ *            <code>lemonKeyCalculate</code>
+ * @param signMap
+ *            map of cells to be overwritten. Key calculation done by
+ *            <code>lemonKeyCalculate</code>
+ */
+function lemonMoveMove(direction, wrap, wrapDimension, emptyMap, signMap) {
+	if (direction.x == 0 && direction.y == 0) {
+		return;
+	}
+	if ((this.location.x >= 0 && this.location.x < width)
+			&& (this.location.y >= 0 && this.location.y < height)) {
+		var place = lemonKeyCalculate(this.location);
+		if (signMap[place] == null) {
+			emptyMap[place] = empty;
+		}
+	}
+	this.location.x += direction.x;
+	this.location.y += direction.y;
+	if (wrap) {
+		if (direction.x < 0) {
+			if (this.location.x < 0) {
+				this.location.x += wrapDimension.x;
+			}
+		} else if (direction.x > 0) {
+			if (this.location.x > wrapDimension.x) {
+				this.location.x -= wrapDimension.x;
+			}
+		}
+		if (direction.y < 0) {
+			if (this.location.y < 0) {
+				this.location.y += wrapDimension.y;
+			}
+		} else if (direction.y > 0) {
+			if (this.location.y > wrapDimension.y) {
+				this.location.y -= wrapDimension.y;
+			}
+		}
+	}
+	if ((this.location.x >= 0 && this.location.x < width)
+			&& (this.location.y >= 0 && this.location.y < height)) {
+		var place = lemonKeyCalculate(this.location);
+		if (emptyMap[place] != null) {
+			emptyMap[place] = null;
+		}
+		signMap[place] = this.content;
+	}
+}
+
+/**
+ * Calculates a hash key for <code>LemonPoints</code>. Dependent of global
+ * width.
+ * 
+ * @param lemonPoint
+ *            the point to calculate key for
+ * @returns the key calculated
+ */
+function lemonKeyCalculate(lemonPoint) {
+	return lemonPoint.y * width + lemonPoint.x;
+}
+
+/**
+ * Calculates which point this key was constructed for. Dependent of global
+ * width.
+ * 
+ * @param key
+ *            the key to reconstruct
+ * @returns {LemonPoint} the point the key represents
+ */
+function lemonKeyDescifer(key) {
+	var tmpX = key % width;
+	var tmpY = (key - tmpX) / width;
+	return new LemonPoint(tmpX, tmpY);
+}
 
 /**
  * Creates a new counter for this game.
@@ -14,8 +384,12 @@
  *            how many lives you are supposed to have.
  */
 function LemonCounter(lives) {
+	// TODO Make function to clear text area of counter
+	this.target = 1000000;
+	this.setTarget = counterSetTarget;
 	this.points = 0;
 	this.lemonsEaten = 0;
+	this.totalLemonsEaten = 0;
 	this.lives = lives * 1;
 	this.eaterDied = counterKill;
 	this.tick = counterTick;
@@ -26,6 +400,18 @@ function LemonCounter(lives) {
 	this.printPoints();
 	this.printEatenLemons = counterOutLemonsEaten;
 	this.printEatenLemons();
+}
+
+/**
+ * Sets a new target count for <code>LemonCounter</code>.
+ * 
+ * @param the
+ *            new target
+ */
+function counterSetTarget(target) {
+	this.target = target * 1;
+	if (this.target < 0)
+		alert("Malformed target number");
 }
 
 /**
@@ -61,10 +447,16 @@ function counterTick() {
  */
 function counterEat() {
 	this.lemonsEaten++;
+	this.totalLemonsEaten++;
 	this.points += 100;
 	this.points += 10 * this.lemonsEaten;
 	this.printPoints();
 	this.printEatenLemons();
+	if (this.target == this.lemonsEaten) {
+		// TODO Target met. Notify someone.
+		this.lemonsEaten = 0;
+	}
+
 }
 
 function counterOutLives() {
@@ -159,7 +551,7 @@ function LemonEater(place, length, direction, context) {
 }
 
 /**
- * Checks if a point is in this eater.
+ * Checks if a point is in this eater. The check is done in this eaters context.
  * 
  * @param point
  *            the place to check
@@ -176,33 +568,42 @@ function eaterContains(point) {
 }
 
 /**
- * Draws eater death to this position
+ * Draws eater death to this position. Position is in eaters context, but is
+ * drawn in absolute context.
  * 
  * @param point
  *            where the dead element is drawn
  */
 function eaterDrawDeath(point) {
-	document.getElementById('lemon-cell-x' + point.x + '-y' + point.y).className = 'lemon-eater-death';
+	document.getElementById('lemon-cell-x'
+			+ (point.x + this.ownerBoard.location.x) + '-y'
+			+ (point.y + this.ownerBoard.location.y)).className = 'lemon-eater-death';
 }
 
 /**
- * Draws eater head to this position
+ * Draws eater head to this position. Position is in eaters context, but is
+ * drawn in absolute context.
  * 
  * @param point
  *            where the head is drawn
  */
 function eaterDrawHead(point) {
-	document.getElementById('lemon-cell-x' + point.x + '-y' + point.y).className = 'lemon-eater-head';
+	document.getElementById('lemon-cell-x'
+			+ (point.x + this.ownerBoard.location.x) + '-y'
+			+ (point.y + this.ownerBoard.location.y)).className = 'lemon-eater-head';
 }
 
 /**
- * Draws eater body to this position
+ * Draws eater body to this position. Position is in eaters context, but is
+ * drawn in absolute context.
  * 
  * @param point
  *            where the body is drawn
  */
 function eaterDrawBody(point) {
-	document.getElementById('lemon-cell-x' + point.x + '-y' + point.y).className = 'lemon-eater-body';
+	document.getElementById('lemon-cell-x'
+			+ (point.x + this.ownerBoard.location.x) + '-y'
+			+ (point.y + this.ownerBoard.location.y)).className = 'lemon-eater-body';
 }
 
 /**
@@ -252,13 +653,13 @@ function setEaterDirection(direction) {
 function eaterTick() {
 	this.x += this.dx;
 	if (this.x < 0)
-		this.x = width - 1;
-	if (this.x >= width)
+		this.x = this.ownerBoard.dimension.x - 1;
+	if (this.x >= this.ownerBoard.dimension.x)
 		this.x = 0;
 	this.y += this.dy;
 	if (this.y < 0)
-		this.y = height - 1;
-	if (this.y >= height)
+		this.y = this.ownerBoard.dimension.y - 1;
+	if (this.y >= this.ownerBoard.dimension.y)
 		this.y = 0;
 	this.allowDirectionChange = true;
 	var point = new LemonPoint(this.x, this.y);
@@ -305,70 +706,87 @@ function eaterTick() {
 }
 
 /**
- * Creates a new LemonBoard. When completed, start position and walls should be
- * presented to this as a String. Right now this variable does nothing.
+ * Creates a new <code>LemonBoard</code> based on the
+ * <code>LemonExternalBoard</code> given. Will not spawn lemons or LemonEater
+ * until start pause is over. Will draw walls immediately.
  * 
- * @param boardAsString
- *            a String representation of the board
+ * 
+ * @param externalBoard
+ *            the <code>LemonExternalBoars</code> to build this board from.
+ * @param counter
+ *            the <code>LemonCounter</code> that now counts time.
  */
-function LemonBoard(boardAsString, counter) {
-	// TODO Make way to analyze string so that we can get different boards.
-	// First string analyser only reads signs without newlines. Prefixed size.
-	// So, board will be 80*30=2400 signs large. L is startposition. Number is
-	// wall, or not.
-	// TODO Decide board size, and redraw as necessary
-	/*
-	 * width,height,startx,starty,uncompressedwallnumbers. another sign than .
-	 * at the end indicates something more?
-	 */
-	var desciferedString = boardAsString; // will be altered later.
+function LemonBoard(externalBoard, counter) {
+	// and width.
+	this.setLemonExternalBoard = lemonSetExternalBoard;
+	// Dimension of board. The coordinate system of the board
+	this.dimension;
+	// Location of board. Only used for rendering purposes.
+	this.location;
+	this.pauseBeforeStart;
+	this.pauseAfterEnd;
+	// Counter is the only thing that should not change when new level are set.
 	this.counter = counter;
-	this.lemon = new LemonLemon(new LemonPoint(-1, -1));
-	this.setWall = boardSetWall;
-	this.walls = new Array();
-	this.start = new LemonPoint(0, 0);
-	for ( var y = 0; y < height; y++) {
-		this.walls[y] = new Array();
-		for ( var x = 0; x < width; x++) {
-			var v = desciferedString[width * y + x];
-			if (v == 'L') {
-				this.setWall(x, y, 0);
-				this.start = new LemonPoint(x, y);
-			} else {
-				this.setWall(x, y, v * 1);
-			}
-		}
-	}
-	// TODO If end not reached, do something.
-	this.eater = new LemonEater(this.start, 1, 'e', this);
+	this.lemon;
+	this.updateWall = lemonBoardUpdateWall;
+	this.walls;
+	this.start;
+	this.eater = null;
 	this.isWall = boardWall;
 	this.isLemon = boardIsLemon;
 	this.tick = boardTick;
 	this.spawnLemon = boardSpawnLemon;
 	this.release = boardRelease;
-	this.spawnLemon();
 	this.consumeLemon = boardConsume;
 	this.setEaterDirection = boardEaterDirection;
 	this.killEater = boardSpawnEater;
+	this.setLemonExternalBoard(externalBoard);
+}
+
+function lemonSetExternalBoard(externalBoard) {
+	// TODO Ensure we can not alter anything in the external board.
+	this.lemon = new LemonLemon(new LemonPoint(-1, -1));
+	this.walls = externalBoard.board;
+	this.start = externalBoard.lemonSpawn;
+	this.dimension = externalBoard.dimension;
+	this.counter.setTarget(externalBoard.target);
+	this.location = externalBoard.location;
+	if (this.location.x < 0 || this.location < 0)
+		alert("Did set a board with malformed location");
+	if (this.dimension.x < 0 || this.dimension.y < 0)
+		alert("Did set a board with malformed dimension");
+	if (this.dimension.x + this.location.x > width
+			|| this.dimension.y + this.location.y > height)
+		alert("Did set a board with wrong dimension and location");
+	this.pauseBeforeStart = externalBoard.pauseBeforeStart;
+	this.pauseAfterEnd = externalBoard.pauseAfterEnd;
+	for ( var y = 0; y < this.dimension.y; y++) {
+		for ( var x = 0; x < this.dimension.x; x++) {
+			this.updateWall(x, y);
+		}
+	}
+	if (this.pauseBeforeStart <= 0) {
+		this.eater = new LemonEater(this.start, 1, 'e', this);
+		this.spawnLemon();
+	}
 }
 
 /**
  * Sets a wall segment and updates graphics.
  * 
  * @param x
- *            x-position
+ *            x-position in boards coordinate system
  * @param y
- *            y-position
- * @param w
- *            wall value
+ *            y-position in boards coordinate system
  */
-function boardSetWall(x, y, w) {
-	this.walls[y][x] = w;
-	if (w > 0)
-		document.getElementById('lemon-cell-x' + x + '-y' + y).className = 'lemon-wall-'
-				+ w;
+function lemonBoardUpdateWall(x, y) {
+	var relX = x + this.location.x;
+	var relY = y + this.location.y;
+	if (this.walls[y][x] > 0)
+		document.getElementById('lemon-cell-x' + relX + '-y' + relY).className = 'lemon-wall-'
+				+ this.walls[y][x];
 	else
-		document.getElementById('lemon-cell-x' + x + '-y' + y).className = '';
+		document.getElementById('lemon-cell-x' + relX + '-y' + relY).className = '';
 }
 
 /**
@@ -384,14 +802,15 @@ function boardSpawnEater() {
  * Sets this boards eaters direction.
  */
 function boardEaterDirection(direction) {
-	this.eater.setDirection(direction);
+	if (this.eater != null)
+		this.eater.setDirection(direction);
 }
 
 /**
  * Checks if the point of interest is a wall.
  * 
  * @param point
- *            point to check
+ *            point to check in boards coordinate system
  * @returns {Boolean} if this is a wall segment.
  */
 function boardWall(point) {
@@ -419,7 +838,7 @@ function boardConsume(point) {
  * Checks if there is a lemon on this point
  * 
  * @param point
- *            point to check
+ *            point to check in boards coordinate system
  * @returns {Boolean} if there is a lemon here.
  */
 function boardIsLemon(point) {
@@ -434,13 +853,13 @@ function boardIsLemon(point) {
  * @returns {LemonLemon} the lemon spawned.
  */
 function boardSpawnLemon() {
-	var x = Math.floor(Math.random() * width);
-	var y = Math.floor(Math.random() * height);
+	var x = Math.floor(Math.random() * this.dimension.x);
+	var y = Math.floor(Math.random() * this.dimension.y);
 	var point = new LemonPoint(x, y);
 	var illegal = this.isWall(point) || this.eater.contains(point);
 	while (illegal) {
-		x = Math.floor(Math.random() * width);
-		y = Math.floor(Math.random() * height);
+		x = Math.floor(Math.random() * this.dimension.x);
+		y = Math.floor(Math.random() * this.dimension.y);
 		point = new LemonPoint(x, y);
 		illegal = this.isWall(point) || this.eater.contains(point);
 	}
@@ -462,15 +881,24 @@ function boardRelease(point) {
 	} else if (this.isLemon(point)) {
 		classType = "lemon-lemon";
 	}
-	document.getElementById('lemon-cell-x' + point.x + '-y' + point.y).className = classType;
+	document.getElementById('lemon-cell-x' + (point.x + this.location.x) + '-y'
+			+ (point.y + this.location.y)).className = classType;
 }
 
 /**
  * A single tick of this board.
  */
 function boardTick() {
-	this.eater.tick();
-	this.counter.tick();
+	if (this.pauseBeforeStart > 0) {
+		this.pauseBeforeStart--;
+		if (this.pauseBeforeStart == 0) {
+			this.eater = new LemonEater(this.start, 1, 'e', this);
+			this.spawnLemon();
+		}
+	} else {
+		this.eater.tick();
+		this.counter.tick();
+	}
 }
 
 /*
@@ -479,37 +907,32 @@ function boardTick() {
 
 var width = 80;
 var height = 30;
+var intro;
 // Empty is a simplification of a space that shows on screen.
 var empty = "&nbsp;";
-// RefreshRate is how often (in milliseconds) the level will be updated
+// RefreshRate is how often(ish) (in milliseconds) the level will be updated
 var refreshRate = 100;
 var started = false;
 var testCellX = width - 1;
 var testCellY = height - 1;
 var gameBoard;
 
+// TODO REMOVE:
+var test = "";
+
 /**
  * Initialize the game
  */
 function lemonInit() {
-	lemonDrawBoard();
+	// intro = new LemonMovableTextLayer(extIntro);
+	lemonInitGameArea();
 	// TODO this is testing things:
-	var b = "";
-	for ( var y = 0; y < height; y++) {
-		for ( var x = 0; x < width; x++) {
-			if (x==5 && y==10) {
-				b+= 'L';
-			} else if (x == 60 || y==20) {
-				b += ((x + y) % 7) + 1;
-			} else {
-				b += '0';
-			}
-		}
-	}
-	gameBoard = new LemonBoard(b, new LemonCounter(5));
+	gameBoard = new LemonBoard(extLvl, new LemonCounter(5));
 	started = true;
 	// TODO End testing things
 	// Add listeners and focus.
+	// TODO Add listening of skip action
+	// TODO Add listener for level pack change
 	var gameArea = document.getElementById('lemon-focus-controller');
 	gameArea.onkeydown = function(e) {
 		if (started) {
@@ -559,21 +982,39 @@ function setSize(w, h) {
 }
 
 /**
+ * Initializes the game area, with focus controller and game area. Height and
+ * width must be set before this is called.
+ */
+function lemonInitGameArea() {
+	var mainString = '<span id="lemon-game-area"></span>';
+	mainString += '<input type="button" id="lemon-focus-controller" '
+			+ 'value="something to recieve keyboard commands" />';
+	// TODO REMOVE:
+	mainString += '<div id="debug-out"><div>';
+
+	document.getElementById("lemonEater").innerHTML = mainString;
+	lemonDrawBoard();
+}
+
+/**
  * Draws our empty game board. Must be further initialized for every level
  */
 function lemonDrawBoard() {
-	// TODO Decide if it is wanted to add a layer to draw backgrounds on
+	// TODO In CSS file, define backgrounds.
+	// TODO Extensive testing for browser support of layers correctness for
+	// showing colors
 	var b = "";
 	for ( var y = 0; y < height; y++) {
 		b += '<span id="lemon-line-' + y + '" class="lemon-background">';
 		for ( var x = 0; x < width; x++) {
-			b += '<span id="lemon-cell-x' + x + '-y' + y + '">' + empty
-					+ '</span>';
+			b += '<span id = "lemon-bgcell-x' + x + '-y' + y
+					+ '"><span id="lemon-cell-x' + x + '-y' + y + '">' + empty
+					+ '</span></span>';
 		}
 		b += "</span><br />";
 	}
-	b += '<input type="button" id="lemon-focus-controller" value="something to recieve keyboard commands" />';
-	document.getElementById("lemonEater").innerHTML = b;
+	b += '</span>';
+	document.getElementById("lemon-game-area").innerHTML = b;
 }
 
 /**
@@ -596,6 +1037,7 @@ function lemonTick() {
 	if (started) {
 		lemonGameTick();
 	}
+	intro.tick();
 	// TODO make nice little start animation that shows which buttons do what.
 }
 
@@ -603,6 +1045,6 @@ function lemonTick() {
  * If game is started, this should happen
  */
 function lemonGameTick() {
-	// TODO
+	// TODO Currently redundant. If continued to be so, remove
 	gameBoard.tick();
 }

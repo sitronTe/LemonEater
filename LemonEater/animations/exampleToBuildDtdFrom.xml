@@ -1,0 +1,41 @@
+<!-- one DTD should be able to cover all. This is a start -->
+<lemon-eater>
+	<data>
+		<id>intro/1/2/outro/game-over</id>
+		<dimension>
+			<width>80</width>
+			<height>30</height>
+		</dimension>
+		<skipable>true/false</skipable>
+		<layer>
+			<description>
+				<type>text/background/level</type>
+				<dimension>
+					<width>80</width>
+					<height>30</height>
+				</dimension>
+				<location>
+					<!-- Upper left corner -->
+					<x>80</x>
+					<y>0</y>
+				</location>
+				<move>
+					<speed>
+						<x>0</x>
+						<y>0</y>
+					</speed>
+					<wrap>true/false</wrap>
+					<pause>
+						<start>0</start>
+						<end>0</end>
+					</pause>
+				</move>
+				<target>10</target>
+			</description>
+			<content>
+				<cell x="0" y="0">?</cell>
+				<cell x="29" y="79">PCDATA</cell>
+			</content>
+		</layer>
+	</data>
+</lemon-eater>

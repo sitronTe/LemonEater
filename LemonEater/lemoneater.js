@@ -8,9 +8,11 @@
  *  LemonMoveableLayer -> a layer that may or may not move across screen
  */
 
+// TODO When clearing a level by eating lemons, the LemonEater still shows on next screen.
+// TODO Discover why
 function LemonLevelPack() {
-	// TODO write this
-	// TODO Remember counter
+	this.setEaterDirection = packSetEaterDirection;
+	this.counter = null;
 	this.name = null;
 	this.gameBoard = null;
 	this.textLayer = null;
@@ -23,7 +25,8 @@ function LemonLevelPack() {
 	this.sortedExternalDatas = null;
 	this.skippable = false;
 	this.nextLevel = -1;
-	this.tick = packTick();
+	this.setLayers = packSetLayers;
+	this.tick = packTick;
 	// should bring next level
 	this.next = packNext;
 	// Should set external level pack.
@@ -34,8 +37,37 @@ function LemonLevelPack() {
 	this.skip = packSkip;
 }
 
+function packSetEaterDirection(direction) {
+	if (this.gameBoard != null)
+		this.gameBoard.setEaterDirection(direction);
+}
+
+function packSetLayers(externalData) {
+	if (externalData == null) {
+		this.gameBoard = null;
+		this.textLayer = null;
+		this.background = null;
+	} else {
+		if (this.counter == null)
+			this.counter = new LemonCounter(5);
+		this.skippable = externalData.skippable;
+		if (externalData.lvlLayer == null) {
+			this.gameBoard = null;
+		} else {
+			this.gameBoard = new LemonBoard(externalData.lvlLayer, this.counter);
+		}
+		if (externalData.txtLayer == null)
+			this.textLayer = null;
+		else
+			this.textLayer = new LemonMovableLayer(externalData.txtLayer);
+		if (externalData.bgLayer == null)
+			this.background = null;
+		else
+			this.background = new LemonMovableLayer(externalData.bgLayer);
+	}
+}
+
 function packSetExternalLevelPack(externalPack) {
-	// TODO
 	this.gameBoard = null;
 	this.textLayer = null;
 	this.background = null;
@@ -69,7 +101,8 @@ function packSetExternalLevelPack(externalPack) {
 			this.sortedExternalDatas[j] = extData[i];
 		}
 	}
-	// Starts next level. Or intro. Bases itself in that there are content of data.
+	// Starts next level. Or intro. Bases itself in that there are content of
+	// data.
 	this.next();
 }
 
@@ -78,36 +111,53 @@ function packNext() {
 	if (this.sortedExternalDatas == null)
 		return;
 	if (this.nextLevel == -1) {
-		// TODO load start animation, or first level
 		this.nextLevel++;
 		if (this.introAnimation == null) {
 			this.next();
 			return;
+		} else {
+			this.setLayers(this.introAnimation);
 		}
 	} else if (this.nextLevel == -2) {
-		// TODO Load game over animation.
 		this.nextLevel++;
 		if (this.gameOverAnimation == null) {
 			this.next();
 			return;
+		} else {
+			this.setLayers(this.gameOverAnimation);
 		}
 	} else if (this.nextLevel >= this.sortedExternalDatas.length) {
-		// TODO load outro
 		this.nextLevel = -1;
+		this.gameOver();
 		if (this.outroAnimation == null) {
 			this.next();
 			return;
+		} else {
+			this.setLayers(this.outroAnimation);
 		}
 	} else {
-		// TODO load next layer.
+		this.setLayers(this.sortedExternalDatas[this.nextLevel]);
+		this.nextLevel++;
+		if (this.counter != null) {
+			this.counter.printLives();
+			this.counter.printPoints();
+			this.counter.printEatenLemons();
+		}
 	}
-	// TODO
 }
 
 function packGameOver() {
-	this.nextLevel = -2;
-	this.next();
-	// TODO Submit score. Restart level pack
+	// TODO Submit score.
+	if (this.counter != null) {
+		this.counter.isShown = false;
+		this.counter = null;
+	}
+	// Clears board completely
+	lemonClearBoard();
+	if (this.nextLevel >= 0) {
+		this.nextLevel = -2;
+		this.next();
+	}
 }
 
 function packSkip() {
@@ -124,14 +174,12 @@ function packTick() {
 		this.background.tick();
 }
 
-// TODO Create a holder for level pack.
-// TODO level pack must be able to turn to next level
-// TODO level pack must know what to do when game is over
 /**
  * Creates a new <code>LemonMoveableLayer</code> from the
  * <code>LemonExternalTextOrBackgroundLayer</code> brought along.
  */
 function LemonMovableLayer(externalLayer) {
+	this.repaint = movableRepaint;
 	this.type;
 	this.dimension;
 	this.velocity;
@@ -144,15 +192,48 @@ function LemonMovableLayer(externalLayer) {
 	this.location;
 	this.mooving;
 	this.moveNow;
-	this.tick = lemonMoveTextTick;
+	this.tick = lemonMoveTick;
 	this.setLayer = setNewLayer;
 	this.setLayer(externalLayer);
+}
+
+function movableRepaint() {
+	for ( var x = 0; x < width; x++) {
+		for ( var y = 0; y < height; y++) {
+			var point = new LemonPoint(x, y);
+			if (this.type == "text")
+				lemonUpdateText(point, empty);
+			else if (this.type == "background")
+				lemonUpdateBackground(point, empty);
+		}
+	}
+	for ( var i = 0; i < this.moveables.length; i++) {
+		var mv = this.moveables[i];
+		// if too far left
+		if (mv.location.x < 0 || mv.location.x < this.location.x)
+			return;
+		// if too far right
+		if (mv.location.x > width
+				|| mv.location.x > this.dimension.x + this.location.x)
+			return;
+		// if too high
+		if (mv.location.y < 0 || mv.location.y < this.location.y)
+			return;
+		// if too low
+		if (mv.location.y > height
+				|| mv.location.y > this.dimension.y + this.location.y)
+			return;
+		if (this.type == "text")
+			lemonUpdateText(mv.location, mv.content);
+		else if (this.type == "background")
+			lemonUpdateBackground(mv.location, mv.content);
+	}
 }
 
 function setNewLayer(externalLayer) {
 	this.type = externalLayer.type;
 	// dimension is used for wrapping
-	dim = externalLayer.dimension;
+	var dim = externalLayer.dimension;
 	this.dimension = new LemonPoint(Math.abs(dim.x), Math.abs(dim.y));
 	// location is only defined as start location
 	var loc = externalLayer.location;
@@ -164,8 +245,8 @@ function setNewLayer(externalLayer) {
 	this.moveables = new Array();
 	// update moveables start location
 	for ( var i = 0; i < moves.length; i++) {
-		this.moveables[i] = new LemonMoveableElement(moves.location.x + loc.x,
-				moves.location.y + loc.y, moves.content);
+		this.moveables[i] = new LemonMoveableElement(moves[i].location.x
+				+ loc.x, moves[i].location.y + loc.y, moves[i].content);
 	}
 	// Set up counters for later use
 	this.startPauseLeft = this.pauseBeforeStart;
@@ -178,6 +259,7 @@ function setNewLayer(externalLayer) {
 	// Move now is a vector to keep track of how many clicks one should move
 	// each tick.
 	this.moveNow = new LemonPoint(0, 0);
+	this.repaint();
 }
 
 /**
@@ -271,8 +353,11 @@ function lemonUpdateText(pos, cont) {
 }
 
 function lemonUpdateBackground(pos, cont) {
-	// TODO Background here should be updated. If cont == empty background
-	// should be removed.
+	if (cont == empty)
+		document.getElementById('lemon-bgcell-x' + pos.x + '-y' + pos.y).className = "";
+	else
+		document.getElementById('lemon-bgcell-x' + pos.x + '-y' + pos.y).className = "lemon-bg-"
+				+ cont;
 }
 
 /**
@@ -385,6 +470,7 @@ function lemonKeyDescifer(key) {
  */
 function LemonCounter(lives) {
 	// TODO Make function to clear text area of counter
+	this.isShown = true;
 	this.target = 1000000;
 	this.setTarget = counterSetTarget;
 	this.points = 0;
@@ -425,7 +511,9 @@ function counterKill() {
 		this.points = 0;
 	}
 	if (this.lives < 0) {
+		// TODO If ever cleaning up, move rule check to container object.
 		this.lives = 0;
+		gamePack.gameOver();
 		// TODO GAME OVER!!!
 	}
 	this.printPoints();
@@ -453,13 +541,15 @@ function counterEat() {
 	this.printPoints();
 	this.printEatenLemons();
 	if (this.target == this.lemonsEaten) {
-		// TODO Target met. Notify someone.
 		this.lemonsEaten = 0;
+		gamePack.next();
 	}
 
 }
 
 function counterOutLives() {
+	if (!this.isShown)
+		return;
 	var l = this.lives;
 	document.getElementById('lemon-cell-x1-y1').innerHTML = l % 10;
 	l = Math.floor(l / 10);
@@ -467,6 +557,8 @@ function counterOutLives() {
 }
 
 function counterOutPoints() {
+	if (!this.isShown)
+		return;
 	var p = this.points;
 	for ( var i = 5; i >= 0; i--) {
 		document.getElementById('lemon-cell-x' + i + '-y0').innerHTML = p % 10;
@@ -475,6 +567,8 @@ function counterOutPoints() {
 }
 
 function counterOutLemonsEaten() {
+	if (!this.isShown)
+		return;
 	var l = this.lemonsEaten;
 	for ( var i = 5; i >= 3; i--) {
 		document.getElementById('lemon-cell-x' + i + '-y1').innerHTML = l % 10;
@@ -751,7 +845,7 @@ function lemonSetExternalBoard(externalBoard) {
 	this.dimension = externalBoard.dimension;
 	this.counter.setTarget(externalBoard.target);
 	this.location = externalBoard.location;
-	if (this.location.x < 0 || this.location < 0)
+	if (this.location.x < 0 || this.location.y < 0)
 		alert("Did set a board with malformed location");
 	if (this.dimension.x < 0 || this.dimension.y < 0)
 		alert("Did set a board with malformed dimension");
@@ -912,13 +1006,45 @@ var intro;
 var empty = "&nbsp;";
 // RefreshRate is how often(ish) (in milliseconds) the level will be updated
 var refreshRate = 100;
-var started = false;
 var testCellX = width - 1;
 var testCellY = height - 1;
-var gameBoard;
+// var gameBoard;
+var gamePack;
 
 // TODO REMOVE:
 var test = "";
+// TODO REMOVE:
+function testBg() {
+	for ( var x = 0; x < width; x++) {
+		for ( var y = 0; y < height; y++) {
+			var z = (x + y) % 16;
+			if (z > 0) {
+				var type = bgTrans[z];
+				document.getElementById('lemon-bgcell-x' + x + '-y' + y).className = "lemon-bg-"
+						+ type;
+			}
+		}
+	}
+}
+
+// TODO REMOVE
+var bgTrans = {
+	1 : "1",
+	2 : "2",
+	3 : "3",
+	4 : "4",
+	5 : "5",
+	6 : "6",
+	7 : "7",
+	8 : "8",
+	9 : "9",
+	10 : "a",
+	11 : "b",
+	12 : "c",
+	13 : "d",
+	14 : "e",
+	15 : "f"
+};
 
 /**
  * Initialize the game
@@ -927,41 +1053,50 @@ function lemonInit() {
 	// intro = new LemonMovableTextLayer(extIntro);
 	lemonInitGameArea();
 	// TODO this is testing things:
-	gameBoard = new LemonBoard(extLvl, new LemonCounter(5));
-	started = true;
+	gamePack = new LemonLevelPack();
+	gamePack.setExternalLevelPack(extPack);
+	// gameBoard = new LemonBoard(extLvl, new LemonCounter(5));
+	// testBg();
 	// TODO End testing things
 	// Add listeners and focus.
-	// TODO Add listening of skip action
 	// TODO Add listener for level pack change
 	var gameArea = document.getElementById('lemon-focus-controller');
 	gameArea.onkeydown = function(e) {
-		if (started) {
-			switch (e.keyCode) {
-			case 65:
-			case 37:
-				// left
-				gameBoard.setEaterDirection('w');
-				break;
-			case 87:
-			case 38:
-				// up
-				gameBoard.setEaterDirection('n');
-				break;
-			case 68:
-			case 39:
-				// right
-				gameBoard.setEaterDirection('e');
-				break;
-			case 83:
-			case 40:
-				// down
-				gameBoard.setEaterDirection('s');
-				break;
-			}
+		// TODO REMOVE:
+		document.getElementById("debug-out").innerHTML = e.keyCode;
+		//
+		switch (e.keyCode) {
+		case 65:
+		case 37:
+			// left
+			gamePack.setEaterDirection('w');
+			break;
+		case 87:
+		case 38:
+			// up
+			gamePack.setEaterDirection('n');
+			break;
+		case 68:
+		case 39:
+			// right
+			gamePack.setEaterDirection('e');
+			break;
+		case 83:
+		case 40:
+			// down
+			gamePack.setEaterDirection('s');
+			break;
+		case 13:
+		case 32:
+			gamePack.skip();
+			break;
 		}
 	};
+	gameArea.onblur = function() {
+		gameArea.focus();
+	};
 	gameArea.onkeyup = function(e) {
-		// unused i think
+		// unused
 	};
 	setInterval("lemonTick()", refreshRate);
 	gameArea.focus();
@@ -1000,7 +1135,6 @@ function lemonInitGameArea() {
  * Draws our empty game board. Must be further initialized for every level
  */
 function lemonDrawBoard() {
-	// TODO In CSS file, define backgrounds.
 	// TODO Extensive testing for browser support of layers correctness for
 	// showing colors
 	var b = "";
@@ -1026,6 +1160,7 @@ function lemonClearBoard() {
 		for ( var x = 0; x < width; x++) {
 			document.getElementById('lemon-cell-x' + x + '-y' + y).innerHTML = empty;
 			document.getElementById('lemon-cell-x' + x + '-y' + y).className = "";
+			document.getElementById('lemon-bgcell-x' + x + '-y' + y).className = "";
 		}
 	}
 }
@@ -1034,17 +1169,5 @@ function lemonClearBoard() {
  * What happens when timer ticks.
  */
 function lemonTick() {
-	if (started) {
-		lemonGameTick();
-	}
-	intro.tick();
-	// TODO make nice little start animation that shows which buttons do what.
-}
-
-/**
- * If game is started, this should happen
- */
-function lemonGameTick() {
-	// TODO Currently redundant. If continued to be so, remove
-	gameBoard.tick();
+	gamePack.tick();
 }

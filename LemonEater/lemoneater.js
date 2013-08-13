@@ -47,22 +47,23 @@ function packSetLayers(externalData) {
 		this.gameBoard = null;
 		this.textLayer = null;
 		this.background = null;
+		lemonClearBoard();
 	} else {
 		if (this.counter == null)
 			this.counter = new LemonCounter(5);
 		this.skippable = externalData.skippable;
-		if (externalData.lvlLayer == null) {
-			this.gameBoard = null;
-		} else {
+		this.gameBoard = null;
+		lemonClearFG();
+		if (externalData.lvlLayer != null) {
 			this.gameBoard = new LemonBoard(externalData.lvlLayer, this.counter);
 		}
-		if (externalData.txtLayer == null)
-			this.textLayer = null;
-		else
+		this.textLayer = null;
+		lemonClearText();
+		if (externalData.txtLayer != null)
 			this.textLayer = new LemonMovableLayer(externalData.txtLayer);
-		if (externalData.bgLayer == null)
-			this.background = null;
-		else
+		this.background = null;
+		lemonClearBG();
+		if (externalData.bgLayer != null)
 			this.background = new LemonMovableLayer(externalData.bgLayer);
 	}
 }
@@ -166,8 +167,12 @@ function packSkip() {
 }
 
 function packTick() {
+	// TODO Find bug where eaters do not disappear when target is met.
 	if (this.gameBoard != null)
 		this.gameBoard.tick();
+	else
+		// TODO This is an exceptionally stupid bugfix
+		lemonClearFG();
 	if (this.textLayer != null)
 		this.textLayer.tick();
 	if (this.background != null)
@@ -469,7 +474,6 @@ function lemonKeyDescifer(key) {
  *            how many lives you are supposed to have.
  */
 function LemonCounter(lives) {
-	// TODO Make function to clear text area of counter
 	this.isShown = true;
 	this.target = 1000000;
 	this.setTarget = counterSetTarget;
@@ -514,7 +518,6 @@ function counterKill() {
 		// TODO If ever cleaning up, move rule check to container object.
 		this.lives = 0;
 		gamePack.gameOver();
-		// TODO GAME OVER!!!
 	}
 	this.printPoints();
 	this.printLives();
@@ -544,7 +547,6 @@ function counterEat() {
 		this.lemonsEaten = 0;
 		gamePack.next();
 	}
-
 }
 
 function counterOutLives() {
@@ -833,7 +835,8 @@ function LemonBoard(externalBoard, counter) {
 	this.release = boardRelease;
 	this.consumeLemon = boardConsume;
 	this.setEaterDirection = boardEaterDirection;
-	this.killEater = boardSpawnEater;
+	this.killEater = boardKillEater;
+	this.spawnEater = boardSpawnEater;
 	this.setLemonExternalBoard(externalBoard);
 }
 
@@ -887,9 +890,16 @@ function lemonBoardUpdateWall(x, y) {
  * Spawns a LemonEater at start location, and notifies counter to count down
  * lives.
  */
+function boardKillEater() {
+	this.spawnEater();
+	this.counter.eaterDied();
+}
+
+/**
+ * Spawns a LemonEater at start location.
+ */
 function boardSpawnEater() {
 	this.eater = new LemonEater(this.start, 1, 'e', this);
-	this.counter.eaterDied();
 }
 
 /**
@@ -1008,43 +1018,8 @@ var empty = "&nbsp;";
 var refreshRate = 100;
 var testCellX = width - 1;
 var testCellY = height - 1;
-// var gameBoard;
+
 var gamePack;
-
-// TODO REMOVE:
-var test = "";
-// TODO REMOVE:
-function testBg() {
-	for ( var x = 0; x < width; x++) {
-		for ( var y = 0; y < height; y++) {
-			var z = (x + y) % 16;
-			if (z > 0) {
-				var type = bgTrans[z];
-				document.getElementById('lemon-bgcell-x' + x + '-y' + y).className = "lemon-bg-"
-						+ type;
-			}
-		}
-	}
-}
-
-// TODO REMOVE
-var bgTrans = {
-	1 : "1",
-	2 : "2",
-	3 : "3",
-	4 : "4",
-	5 : "5",
-	6 : "6",
-	7 : "7",
-	8 : "8",
-	9 : "9",
-	10 : "a",
-	11 : "b",
-	12 : "c",
-	13 : "d",
-	14 : "e",
-	15 : "f"
-};
 
 /**
  * Initialize the game
@@ -1055,16 +1030,11 @@ function lemonInit() {
 	// TODO this is testing things:
 	gamePack = new LemonLevelPack();
 	gamePack.setExternalLevelPack(extPack);
-	// gameBoard = new LemonBoard(extLvl, new LemonCounter(5));
-	// testBg();
 	// TODO End testing things
-	// Add listeners and focus.
 	// TODO Add listener for level pack change
+	// Adds listeners and focus.
 	var gameArea = document.getElementById('lemon-focus-controller');
 	gameArea.onkeydown = function(e) {
-		// TODO REMOVE:
-		document.getElementById("debug-out").innerHTML = e.keyCode;
-		//
 		switch (e.keyCode) {
 		case 65:
 		case 37:
@@ -1124,8 +1094,9 @@ function lemonInitGameArea() {
 	var mainString = '<span id="lemon-game-area"></span>';
 	mainString += '<input type="button" id="lemon-focus-controller" '
 			+ 'value="something to recieve keyboard commands" />';
-	// TODO REMOVE:
+	// TODO REMOVE: (stands until game is completed, still need for debug)
 	mainString += '<div id="debug-out"><div>';
+	// TODO REMOVE END
 
 	document.getElementById("lemonEater").innerHTML = mainString;
 	lemonDrawBoard();
@@ -1135,8 +1106,6 @@ function lemonInitGameArea() {
  * Draws our empty game board. Must be further initialized for every level
  */
 function lemonDrawBoard() {
-	// TODO Extensive testing for browser support of layers correctness for
-	// showing colors
 	var b = "";
 	for ( var y = 0; y < height; y++) {
 		b += '<span id="lemon-line-' + y + '" class="lemon-background">';
@@ -1166,8 +1135,42 @@ function lemonClearBoard() {
 }
 
 /**
+ * Clears background layer only.
+ */
+function lemonClearBG() {
+	for ( var y = 0; y < height; y++) {
+		for ( var x = 0; x < width; x++) {
+			document.getElementById('lemon-bgcell-x' + x + '-y' + y).className = "";
+		}
+	}
+}
+
+/**
+ * Clears text layer only
+ */
+function lemonClearText() {
+	for ( var y = 0; y < height; y++) {
+		for ( var x = 0; x < width; x++) {
+			document.getElementById('lemon-cell-x' + x + '-y' + y).innerHTML = empty;
+		}
+	}
+}
+
+/**
+ * Clears foreground, or layer containing walls, lemons and eaters.
+ */
+function lemonClearFG() {
+	for ( var y = 0; y < height; y++) {
+		for ( var x = 0; x < width; x++) {
+			document.getElementById('lemon-cell-x' + x + '-y' + y).className = "";
+		}
+	}
+}
+
+/**
  * What happens when timer ticks.
  */
 function lemonTick() {
-	gamePack.tick();
+	if (gamePack != null)
+		gamePack.tick();
 }

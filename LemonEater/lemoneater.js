@@ -53,6 +53,8 @@ function packSetLayers(externalData) {
 			this.counter = new LemonCounter(5);
 		this.skippable = externalData.skippable;
 		this.gameBoard = null;
+		// Set size of board. Needed if levels are different size.
+		setSize(externalData.dimension.x, externalData.dimension.y);
 		lemonClearFG();
 		if (externalData.lvlLayer != null) {
 			this.gameBoard = new LemonBoard(externalData.lvlLayer, this.counter);
@@ -879,7 +881,7 @@ function lemonSetExternalBoard(externalBoard) {
 function lemonBoardUpdateWall(x, y) {
 	var relX = x + this.location.x;
 	var relY = y + this.location.y;
-	if (this.walls[y][x] > 0)
+	if (this.walls[y][x] != "0")
 		document.getElementById('lemon-cell-x' + relX + '-y' + relY).className = 'lemon-wall-'
 				+ this.walls[y][x];
 	else
@@ -918,7 +920,7 @@ function boardEaterDirection(direction) {
  * @returns {Boolean} if this is a wall segment.
  */
 function boardWall(point) {
-	var isWall = this.walls[point.y][point.x] > 0;
+	var isWall = this.walls[point.y][point.x] != "0";
 	return isWall;
 }
 
@@ -1016,6 +1018,8 @@ var intro;
 var empty = "&nbsp;";
 // RefreshRate is how often(ish) (in milliseconds) the level will be updated
 var refreshRate = 100;
+// firstRun is if lemonInit() has been previously run
+var firstRun = true;
 var testCellX = width - 1;
 var testCellY = height - 1;
 
@@ -1068,7 +1072,10 @@ function lemonInit() {
 	gameArea.onkeyup = function(e) {
 		// unused
 	};
-	setInterval("lemonTick()", refreshRate);
+	if (firstRun) {
+		firstRun = false;
+		setInterval("lemonTick()", refreshRate);
+	}
 	gameArea.focus();
 }
 

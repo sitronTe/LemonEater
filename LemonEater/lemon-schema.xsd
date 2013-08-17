@@ -135,7 +135,7 @@
 										<element name="content" minOccurs="1" maxOccurs="1">
 											<complexType>
 												<sequence>
-													<element name="cell" type="lemon:cellData"
+													<element name="c" type="lemon:cellData"
 														minOccurs="1" maxOccurs="unbounded"></element>
 												</sequence>
 											</complexType>

@@ -36,6 +36,8 @@ function LemonLevelPack() {
 	// Should try to jump over this level (if level is skippable).
 	this.skip = packSkip;
 }
+// TODO Check if pause after end should be treated differently
+// TODO Make moveable layer repaint at creation (discovered in text layer)
 
 function packSetEaterDirection(direction) {
 	if (this.gameBoard != null)
@@ -205,6 +207,7 @@ function LemonMovableLayer(externalLayer) {
 }
 
 function movableRepaint() {
+	// TODO fails
 	for ( var x = 0; x < width; x++) {
 		for ( var y = 0; y < height; y++) {
 			var point = new LemonPoint(x, y);
@@ -220,15 +223,15 @@ function movableRepaint() {
 		if (mv.location.x < 0 || mv.location.x < this.location.x)
 			return;
 		// if too far right
-		if (mv.location.x > width
-				|| mv.location.x > this.dimension.x + this.location.x)
+		if (mv.location.x >= width
+				|| mv.location.x >= this.dimension.x + this.location.x)
 			return;
 		// if too high
 		if (mv.location.y < 0 || mv.location.y < this.location.y)
 			return;
 		// if too low
-		if (mv.location.y > height
-				|| mv.location.y > this.dimension.y + this.location.y)
+		if (mv.location.y >= height
+				|| mv.location.y >= this.dimension.y + this.location.y)
 			return;
 		if (this.type == "text")
 			lemonUpdateText(mv.location, mv.content);
@@ -1101,9 +1104,8 @@ function lemonInitGameArea() {
 	var mainString = '<span id="lemon-game-area"></span>';
 	mainString += '<input type="button" id="lemon-focus-controller" '
 			+ 'value="something to recieve keyboard commands" />';
-	// TODO REMOVE: (stands until game is completed, still need for debug)
+	// Debug data could always be useful:
 	mainString += '<div id="debug-out"><div>';
-	// TODO REMOVE END
 
 	document.getElementById("lemonEater").innerHTML = mainString;
 	lemonDrawBoard();

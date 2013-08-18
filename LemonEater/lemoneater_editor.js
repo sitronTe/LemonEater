@@ -9,9 +9,22 @@ var editColorSelectedId = "lemon-color-selected";
 var editCellStrippedId = "lemon-edit-cell-";
 var editEaterSelectId = "lemon-eater-select";
 var editTargetCountId = "lemon-edit-target";
+var editSkipSelectId = "lemon-skip-select";
+var editSizeXId = "lemon-edit-size-x";
+var editSizeYId = "lemon-edit-size-y";
+var editSpeedXId = "lemon-edit-speed-x";
+var editSpeedYId = "lemon-edit-speed-y";
+var editLocationXId = "lemon-edit-loc-x";
+var editLocationYId = "lemon-edit-loc-y";
+var editPauseStartId = "lemon-edit-pause-start";
+var editPauseEndId = "lemon-edit-pause-end";
+var editWrapId = "lemon-edit-wrap";
+var editTextAreaId = "lemon-edit-text";
 var lemonEaterHeadClass = "lemon-eater-head";
 var lemonEaterBodyClass = "lemon-eater-body";
 var lemonWallStrippedClass = "lemon-wall-";
+var lemonBGStrippedClass = "lemon-bg-";
+var lemonBGClass = "lemon-background";
 
 // Other identifiers
 var bgId = "background";
@@ -42,11 +55,37 @@ var editorEditingLevel = {
 		"x" : 0,
 		"y" : 0
 	},
+	"textLayerLocation" : {
+		"x" : 0,
+		"y" : 0
+	},
+	"textLayerSpeed" : {
+		"x" : 0,
+		"y" : 0
+	},
+	"textLayerPause" : {
+		"start" : 0,
+		"end" : 0
+	},
+	"textLayerWrap" : false,
 	"textLayer" : [ [] ],
 	"bgLayerSize" : {
 		"x" : 0,
 		"y" : 0
 	},
+	"bgLayerLocation" : {
+		"x" : 0,
+		"y" : 0
+	},
+	"bgLayerSpeed" : {
+		"x" : 0,
+		"y" : 0
+	},
+	"bgLayerPause" : {
+		"start" : 0,
+		"end" : 0
+	},
+	"bgLayerWrap" : false,
 	"bgLayer" : [ [] ],
 	"bgSelected" : "",
 	"fgLayer" : [],
@@ -102,7 +141,8 @@ function lemonEditorInit() {
 	};
 	// fills editor with new material:
 	var newContent = "";
-	newContent += 'name: <input type="text" id="' + packNameId + '" /><br />';
+	newContent += 'name: <input type="text" id="' + packNameId
+			+ '" value="NewName" /><br />';
 	newContent += "Only fixed sizes for levels currently available<br />";
 	newContent += 'width: <input type="number" value="80" id="' + packWidthId
 			+ '" /><br />';
@@ -161,7 +201,68 @@ function editorShowMainPackScreen() {
 		newContent += "Game over animation already created. Editing not supported<br />";
 	newContent += '<input type="button" value="Create new level ('
 			+ (idCounter + 1) + ')" onclick="editorCreateNewLevel()" /><br />';
+	newContent += "<br /><br />";
+	newContent += '<input type="button" value="Test this pack" '
+			+ 'onclick="editorTestPack()" /><br />';
+	newContent += '<input type="button" value="Display this pack as XML" '
+			+ 'onclick="editorViewPackXML()" /><br />';
+	newContent += '<input type="button" value="Display and create new pack" '
+			+ 'onclick="editorFinishAndRestart()" /><br />';
 	document.getElementById(editorId).innerHTML = newContent;
+}
+
+function editorViewPackXML() {
+	var packStr = editorBuildPackXMLString();
+	if (packStr == null || packStr == "") {
+		alert("could not view empty pack");
+		return;
+	}
+	// TODO Make it so it looks better on opening. That is find a way to open a
+	// window where the browsers understands it is of XML format, and renders it
+	// thereby.
+	alert(packStr);
+}
+
+function editorFinishAndRestart() {
+	editorViewPackXML();
+	lemonEditorInit();
+}
+
+function editorTestPack() {
+	var packStr = editorBuildPackXMLString();
+	if (packStr == null) {
+		alert("Pack build has failed. Testing aborted");
+		return;
+	}
+	// This requires lemoneater.js and ExternalObjects.js to function
+	extPack = lemonParsePackFromString(packStr);
+	lemonInit();
+	editorAfterTestStarts();
+}
+
+function editorBuildPackXMLString() {
+	if ((editorGameOverTxt == null || editorGameOverTxt == "")
+			&& (editorIntroTxt == null || editorIntroTxt == "")
+			&& (editorLevelsTxt == null || editorLevelsTxt == "")
+			&& (editorOutroTxt == null || editorOutroTxt == "")) {
+		alert("Pack XML build failed");
+		return null;
+	}
+	var outStr = '<?xml version="1.0" encoding="UTF-8"?>';
+	outStr += '<lemon:lemon-eater xmlns:lemon="lemon-schema/" '
+			+ 'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+			+ 'xsi:schemaLocation="lemon-schema/ lemon-schema.xsd ">';
+	outStr += "<name>" + parsedPackName + "</name>";
+	if (editorIntroTxt != null)
+		outStr += editorIntroTxt;
+	if (editorOutroTxt != null)
+		outStr += editorOutroTxt;
+	if (editorGameOverTxt != null)
+		outStr += editorGameOverTxt;
+	if (editorLevelsTxt != null)
+		outStr += editorLevelsTxt;
+	outStr += "</lemon:lemon-eater>";
+	return outStr;
 }
 
 function editorShowMainLevelScreen() {
@@ -170,8 +271,13 @@ function editorShowMainLevelScreen() {
 		return;
 	}
 	var v = editorEditingLevel.target == null ? 1 : editorEditingLevel.target;
-	var newContent = '<input type="number" value="' + v + '" id="'
+	var newContent = "Target lemon count: ";
+	newContent += '<input type="number" value="' + v + '" id="'
 			+ editTargetCountId + '" onchange="editorTargetChanged()" /><br />';
+	newContent += "Skippable level: ";
+	newContent += '<input type="checkbox" id="'
+			+ editSkipSelectId
+			+ '" onclick="editorSkipChanged()" onchange="editorSkipChanged()" /><br />';
 	newContent += '<input type="button" value="Edit text layer" '
 			+ 'onclick="editorShowTextLayerEditor()" /><br />';
 	newContent += '<input type="button" value="Edit background layer" '
@@ -184,9 +290,13 @@ function editorShowMainLevelScreen() {
 			+ 'onclick="editorTestCurrentLevel()" /><br />';
 	newContent += '<input type="button" value="FINISH! Cannot be undone" '
 			+ 'onclick="editorFinalizeCurrentLevel()" />';
-	// TODO Add skippable select
-	// TODO Add target lemons
 	document.getElementById(editorId).innerHTML = newContent;
+	// Make skippable selected or not.
+	document.getElementById(editSkipSelectId).checked = editorEditingLevel.skippable;
+}
+
+function editorSkipChanged() {
+	editorEditingLevel.skippable = document.getElementById(editSkipSelectId).checked;
 }
 
 function editorTargetChanged() {
@@ -220,18 +330,305 @@ function editorTestCurrentLevel() {
 	// This requires lemoneater.js and ExternalObjects.js to function
 	extPack = lemonParsePackFromString(outStr);
 	lemonInit();
+	editorAfterTestStarts();
+}
+
+function editorAfterTestStarts() {
+	var focusContr = document.getElementById("lemon-focus-controller");
+	if (focusContr) {
+		focusContr.onblur = function() {
+			var debugout = document.getElementById("debug-out");
+			if (debugout) {
+				debugout.innerHTML = "For testing porposes the behaviour of "
+						+ "the game has changed. If control of eater is lost, "
+						+ "press button on bottom of game screen.";
+			}
+		};
+	}
 }
 
 function editorFinalizeCurrentLevel() {
-	// TODO
+	var lvlStr = editorTranslateEditingLevelToString(editorEditingLevel);
+	if (lvlStr == null) {
+		alert("Finalization aborted!");
+		return;
+	}
+	switch (editorEditingLevel.id) {
+	case introId:
+		editorIntroTxt = lvlStr;
+		break;
+	case outroId:
+		editorOutroTxt = lvlStr;
+		break;
+	case gameOverId:
+		editorGameOverTxt = lvlStr;
+		break;
+	default:
+		editorLevelsTxt += lvlStr;
+		break;
+	}
+	editorShowMainPackScreen();
 }
 
 function editorShowTextLayerEditor() {
-	// TODO
+	if (editorEditingLevel == null) {
+		alert("Misplaced edit text layer argument");
+		return;
+	}
+	if (editorEditingLevel.textLayer == null)
+		editorCreateNewTxtLayer();
+	var textString = "";
+	var newContent = editorBuildMovementHeader(
+			editorEditingLevel.textLayerSpeed,
+			editorEditingLevel.textLayerPause,
+			editorEditingLevel.textLayerWrap,
+			editorEditingLevel.textLayerLocation);
+	for ( var y = 0; y < editorEditingLevel.textLayer.length; y++) {
+		if (textString != "")
+			textString += "\n";
+		for ( var x = 0; x < editorEditingLevel.textLayer[y].length; x++) {
+			textString += editorEditingLevel.textLayer[y][x];
+		}
+	}
+	newContent += '<div id="' + editAreaId + '"><span class="' + lemonBGClass
+			+ '">';
+	newContent += '<textarea id="' + editTextAreaId + '" rows="'
+			+ packDimensions.y + '" cols="' + packDimensions.x
+			+ '" wrap="off">';
+	newContent += textString + '</textarea>';
+	newContent += '</span></div><br />';
+	newContent += '<input type="button" '
+			+ 'onclick="editorTextLayerCollectAndReturn()" '
+			+ 'value="Back to level select" />';
+	document.getElementById(editorId).innerHTML = newContent;
+}
+
+function editorTextLayerCollectAndReturn() {
+	// Read text area, break it down to char array
+	var text = document.getElementById(editTextAreaId).value;
+	var y = 0;
+	var x = 0;
+	var newLayer = new Array();
+	newLayer = new Array();
+	newLayer[y] = new Array();
+	for ( var i = 0; i < text.length; i++) {
+		var char = text.charAt(i);
+		if (char == "\n") {
+			x = 0;
+			y++;
+			newLayer[y] = new Array();
+		} else {
+			newLayer[y][x++] = char;
+		}
+	}
+	// Find out height and standardize
+	if (newLayer.length < packDimensions.y) {
+		alert("Number of lines in textarea was smaller than this editor "
+				+ "handles. Extra spaces added");
+		for ( var i = newLayer.length; i < packDimensions.y; i++)
+			newLayer[i] = new Array();
+	}
+	// Find max width
+	var max = 0;
+	for ( var i = 0; i < newLayer.length; i++) {
+		max = newLayer[i].length > max ? newLayer[i].length : max;
+	}
+	if (max < packDimensions.x) {
+		alert("Width of widest line in textarea was smaller than this editor "
+				+ "handles. Extra width added.");
+		max = packDimensions.x;
+	}
+	// Standardize. Adding extra spaces if needed.
+	for (y = 0; y < newLayer.length; y++) {
+		for (x = newLayer[y].length; x < max; x++) {
+			newLayer[y][x] = " ";
+		}
+	}
+	// Sets the new text layer
+	editorEditingLevel.textLayer = newLayer;
+	// Sets size for later use
+	editorEditingLevel.textLayerSize = {
+		"x" : max,
+		"y" : newLayer.length
+	};
+	// Location
+	editorEditingLevel.textLayerLocation = {
+		"x" : document.getElementById(editLocationXId).value * 1,
+		"y" : document.getElementById(editLocationYId).value * 1
+	};
+	// Speed
+	editorEditingLevel.textLayerSpeed = {
+		"x" : document.getElementById(editSpeedXId).value * 1,
+		"y" : document.getElementById(editSpeedYId).value * 1
+	};
+	// Pause
+	var start = document.getElementById(editPauseStartId).value * 1;
+	var end = document.getElementById(editPauseEndId).value * 1;
+	if (start < 0)
+		start = 0;
+	if (end < 0)
+		end = 0;
+	editorEditingLevel.textLayerPause = {
+		"start" : start,
+		"end" : end
+	};
+	// Wrap
+	editorEditingLevel.textLayerWrap = document.getElementById(editWrapId).checked;
+	editorShowMainLevelScreen();
+}
+
+function editorCreateNewTxtLayer() {
+	editorEditingLevel.textLayer = new Array();
+	editorEditingLevel.textLayerSize = {
+		"x" : 0,
+		"y" : 0
+	};
+	editorEditingLevel.textLayerLocation = {
+		"x" : 0,
+		"y" : 0
+	};
+	editorEditingLevel.textLayerSpeed = {
+		"x" : 0,
+		"y" : 0
+	};
+	editorEditingLevel.textLayerPause = {
+		"start" : 0,
+		"end" : 0
+	};
+	editorEditingLevel.textLayerWrap = false;
 }
 
 function editorShowBGLayerEditor() {
-	// TODO
+	if (editorEditingLevel == null) {
+		alert("Misplaced edit background argument");
+		return;
+	}
+	if (editorEditingLevel.bgLayer == null) {
+		editorShowSizeSelect(bgId);
+	} else {
+		editorShowBGRealEdit();
+	}
+}
+
+function editorBuildMovementHeader(speed, pause, wrap, location) {
+	var newContent = "Movement speed x-axis(100 is 1 block per tick):<br />";
+	newContent += '<input type="number" id="' + editSpeedXId + '" value="'
+			+ speed.x + '" /><br />';
+	newContent += "Movement speed y-axis(100 is 1 block per tick):<br />";
+	newContent += '<input type="number" id="' + editSpeedYId + '" value="'
+			+ speed.y + '" /><br />';
+	newContent += "Location x-axis:<br />";
+	newContent += '<input type="number" id="' + editLocationXId + '" value="'
+			+ location.x + '" /><br />';
+	newContent += "Location y-axis:<br />";
+	newContent += '<input type="number" id="' + editLocationYId + '" value="'
+			+ location.y + '" /><br />';
+	newContent += "Pause ticks before start:<br />";
+	newContent += '<input type="number" id="' + editPauseStartId + '" value="'
+			+ pause.start + '" /><br />';
+	newContent += "Pause ticks after end:<br />";
+	newContent += '<input type="number" id="' + editPauseEndId + '" value="'
+			+ pause.end + '" /><br />';
+	newContent += 'Wrap: <input type="checkbox" id="' + editWrapId + '" ';
+	if (wrap)
+		newContent += 'checked="checked" ';
+	newContent += '/><br />';
+	return newContent;
+}
+
+function editorShowBGRealEdit() {
+	// Movement choices:
+	var newContent = editorBuildMovementHeader(editorEditingLevel.bgLayerSpeed,
+			editorEditingLevel.bgLayerPause, editorEditingLevel.bgLayerWrap,
+			editorEditingLevel.bgLayerLocation);
+	// Edit area:
+	newContent += editorBuildFGBGEditArea(bgId);
+	// Color choose area:
+	newContent += editorBuildFGBGColorChooserArea(bgId);
+	newContent += '<div><input type="button" '
+			+ 'onclick="editorBGCollectAndReturn()" '
+			+ 'value="Back to level select" /></div>';
+	document.getElementById(editorId).innerHTML = newContent;
+}
+
+function editorBGCollectAndReturn() {
+	// Speed
+	editorEditingLevel.bgLayerSpeed = {
+		"x" : document.getElementById(editSpeedXId).value * 1,
+		"y" : document.getElementById(editSpeedYId).value * 1
+	};
+	// Location
+	editorEditingLevel.bgLayerLocation = {
+		"x" : document.getElementById(editLocationXId).value * 1,
+		"y" : document.getElementById(editLocationYId).value * 1
+	};
+	// Pause
+	var start = document.getElementById(editPauseStartId).value * 1;
+	var end = document.getElementById(editPauseEndId).value * 1;
+	if (start < 0)
+		start = 0;
+	if (end < 0)
+		end = 0;
+	editorEditingLevel.bgLayerPause = {
+		"start" : start,
+		"end" : end
+	};
+	// Wrap
+	editorEditingLevel.bgLayerWrap = document.getElementById(editWrapId).checked;
+	editorShowMainLevelScreen();
+}
+
+function editorCreateNewBGLayer() {
+	editorEditingLevel.bgLayer = new Array();
+	for ( var y = 0; y < editorEditingLevel.bgLayerSize.y; y++) {
+		editorEditingLevel.bgLayer[y] = new Array();
+		for ( var x = 0; x < editorEditingLevel.bgLayerSize.x; x++) {
+			editorEditingLevel.bgLayer[y][x] = "0";
+		}
+	}
+	editorEditingLevel.bgLayerSpeed = {
+		"x" : 0,
+		"y" : 0
+	};
+	editorEditingLevel.bgLayerLocation = {
+		"x" : 0,
+		"y" : 0
+	};
+	editorEditingLevel.bgLayerPause = {
+		"start" : 0,
+		"end" : 0
+	};
+	editorEditingLevel.bgLayerWrap = false;
+}
+
+function editorShowSizeSelect(layer) {
+	var newContent = layer
+			+ " layer size select<br />Do not exceed pack size<br />";
+	newContent += 'x: <input type="number" id="' + editSizeXId + '" value="'
+			+ packDimensions.x + '" /><br />';
+	newContent += 'y: <input type="number" id="' + editSizeYId + '" value="'
+			+ packDimensions.y + '" /><br />';
+	newContent += '<input type="button" value="Done" onclick="editorSizeSelected(\''
+			+ layer + '\')" />';
+	document.getElementById(editorId).innerHTML = newContent;
+}
+
+function editorSizeSelected(layer) {
+	var sizeX = document.getElementById(editSizeXId).value * 1;
+	var sizeY = document.getElementById(editSizeYId).value * 1;
+	if (sizeX < packDimensions.x || sizeY < packDimensions.y) {
+		alert("Both text layer size and background size must be larger "
+				+ "than pack size in this editor!");
+		return;
+	}
+	if (layer == bgId) {
+		if (editorEditingLevel.bgLayerSize == null)
+			editorEditingLevel.bgLayerSize = new Object();
+		editorEditingLevel.bgLayerSize.x = sizeX;
+		editorEditingLevel.bgLayerSize.y = sizeY;
+		editorCreateNewBGLayer();
+		editorShowBGRealEdit();
+	}
 }
 
 function editorTranslateArrayToContentString(array, skipSign, xtraData) {
@@ -239,8 +636,8 @@ function editorTranslateArrayToContentString(array, skipSign, xtraData) {
 	for ( var y = 0; y < array.length; y++) {
 		for ( var x = 0; x < array[y].length; x++) {
 			if (array[y][x] != skipSign)
-				output += '<c x="' + x + '" y="' + y + '">' + array[y][x]
-						+ '</c>';
+				output += '<c x="' + x + '" y="' + y + '">'
+						+ editorTranslateCharIfNeeded(array[y][x]) + '</c>';
 		}
 	}
 	if (xtraData != null)
@@ -310,13 +707,105 @@ function editorTranslateFGToString(editingLevel) {
 }
 
 function editorTranslateBGToString(editingLevel) {
-	// TODO
-	return "";
+	var output = "<layer>";
+	output += editorBuildDescriptionString(bgId, editingLevel.bgLayerSize.x,
+			editingLevel.bgLayerSize.y, editingLevel.bgLayerLocation.x,
+			editingLevel.bgLayerLocation.y, editingLevel.bgLayerSpeed.x,
+			editingLevel.bgLayerSpeed.y, editingLevel.bgLayerWrap,
+			editingLevel.bgLayerPause.start, editingLevel.bgLayerPause.end,
+			editingLevel.target);
+	output += editorTranslateArrayToContentString(editingLevel.bgLayer, "0",
+			null);
+	output += "</layer>";
+	return output;
 }
 
 function editorTranslateTxtLayerToString(editingLevel) {
-	// TODO
-	return "";
+	var output = "<layer>";
+	output += editorBuildDescriptionString(txtId, editingLevel.textLayerSize.x,
+			editingLevel.textLayerSize.y, editingLevel.textLayerLocation.x,
+			editingLevel.textLayerLocation.y, editingLevel.textLayerSpeed.x,
+			editingLevel.textLayerSpeed.y, editingLevel.textLayerWrap,
+			editingLevel.textLayerPause.start, editingLevel.textLayerPause.end,
+			editingLevel.target);
+	output += editorTranslateArrayToContentString(editingLevel.textLayer, " ",
+			null);
+	output += "</layer>";
+	return output;
+}
+
+function editorBuildFGBGEditArea(layerId) {
+	var layer = null;
+	var strippedClass = "";
+	if (layerId == fgId) {
+		layer = editorEditingLevel.fgLayer;
+		strippedClass = lemonWallStrippedClass;
+	} else if (layerId == bgId) {
+		layer = editorEditingLevel.bgLayer;
+		strippedClass = lemonBGStrippedClass;
+	} else
+		return "";
+	var newContent = '<div id="' + editAreaId + '">';
+	for ( var y = 0; y < layer.length; y++) {
+		newContent += '<span class="' + lemonBGClass + '">';
+		for ( var x = 0; x < layer[y].length; x++) {
+			var classType = "";
+			var t = layer[y][x];
+			if (t != "0")
+				classType = ' class="' + strippedClass + t + '"';
+			newContent += '<span id="' + editCellStrippedId + 'x' + x + 'y' + y
+					+ '"' + classType + '" onclick="editorEditCellClicked(' + x
+					+ ',' + y + ",'" + layerId + '\')">';
+			newContent += translations[" "] + '</span>';
+		}
+		newContent += '</span><br />';
+	}
+	newContent += '</div><br />';
+	return newContent;
+}
+
+function editorBuildFGBGColorChooserArea(layerId) {
+	var strippedClass = "";
+	var chooseList = null;
+	var selType = null;
+	if (layerId == fgId) {
+		strippedClass = lemonWallStrippedClass;
+		chooseList = wallTypes;
+		selType = editorEditingLevel.fgSelected;
+	} else if (layerId == bgId) {
+		strippedClass = lemonBGStrippedClass;
+		chooseList = bgTypes;
+		selType = editorEditingLevel.bgSelected;
+	} else
+		return "";
+	var newContent = '<div id="' + editColorChooserId + '">';
+	newContent += '<span class="' + lemonBGClass + '">';
+	for ( var i = 0; i < chooseList.length; i++) {
+		var type = chooseList[i];
+		var classType = type == "0" ? "" : 'class="' + strippedClass + type
+				+ '"';
+		newContent += '<span ' + classType
+				+ ' onclick="editorColorChooserCellClicked(\'' + type + '\',\''
+				+ layerId + '\')">' + translations[" "] + translations[" "]
+				+ '</span>';
+	}
+	if (layerId == fgId) {
+		newContent += '<br /><span id="' + editEaterSelectId
+				+ '" onclick="editorSpawnPointSelectClicked()">';
+		newContent += '<span class="' + lemonEaterHeadClass + '">'
+				+ translations[" "] + '</span>';
+		newContent += '<span class="' + lemonEaterBodyClass + '">'
+				+ translations[" "] + translations[" "] + translations[" "]
+				+ translations[" "] + '</span>';
+		newContent += '</span>';
+	}
+	var chosenClass = "";
+	if (selType != null || selType != "0")
+		chosenClass = ' class="' + strippedClass + selType + '"';
+	newContent += '<br /><span id="' + editColorSelectedId + '"' + chosenClass
+			+ '>' + translations[" "] + translations[" "] + '</span>';
+	newContent += '</span></div><br />';
+	return newContent;
 }
 
 function editorShowFGLayerEditor() {
@@ -338,48 +827,9 @@ function editorShowFGLayerEditor() {
 		editorEditingLevel.eaterPos.y = 0;
 	}
 	// draw
-	var newContent = "";
-	newContent += '<div id="' + editAreaId + '">';
-	for ( var y = 0; y < packDimensions.y; y++) {
-		newContent += '<span class="lemon-background">';
-		for ( var x = 0; x < packDimensions.x; x++) {
-			var classType = "";
-			var t = editorEditingLevel.fgLayer[y][x];
-			if (t != "0")
-				classType = ' class="' + lemonWallStrippedClass + t + '"';
-			newContent += '<span id="' + editCellStrippedId + 'x' + x + 'y' + y
-					+ '"' + classType + '" onclick="editorEditCellClicked(' + x
-					+ ',' + y + ",'" + fgId + '\')">';
-			newContent += translations[" "] + '</span>';
-		}
-		newContent += '</span><br />';
-	}
-	newContent += '</div><br />';
-	newContent += '<div id="' + editColorChooserId + '">';
-	for ( var type in wallTypes) {
-		var classType = type == "0" ? "" : 'class="' + lemonWallStrippedClass
-				+ type + '"';
-		newContent += '<span ' + classType
-				+ ' onclick="editorColorChooserCellClicked(\'' + type + '\',\''
-				+ fgId + '\')">' + translations[" "] + translations[" "]
-				+ '</span>';
-	}
-	newContent += '<br /><span id="' + editEaterSelectId
-			+ '" onclick="editorSpawnPointSelectClicked()">';
-	newContent += '<span class="' + lemonEaterHeadClass + '">'
-			+ translations[" "] + '</span>';
-	newContent += '<span class="' + lemonEaterBodyClass + '">'
-			+ translations[" "] + translations[" "] + translations[" "]
-			+ translations[" "] + '</span>';
-	newContent += '</span>';
-	var chosenClass = "";
-	if (editorEditingLevel.fgSelected != null
-			|| editorEditingLevel.fgSelected != "0")
-		chosenClass = ' class="' + lemonWallStrippedClass
-				+ editorEditingLevel.fgSelected + '"';
-	newContent += '<br /><span id="' + editColorSelectedId + '"' + chosenClass
-			+ '>' + translations[" "] + translations[" "] + '</span>';
-	newContent += '</div><br />';
+	var newContent = editorBuildFGBGEditArea(fgId);
+	newContent += editorBuildFGBGColorChooserArea(fgId);
+	// Return button
 	newContent += '<div><input type="button" value="Back to level select" '
 			+ 'onclick="editorShowMainLevelScreen()" /></div>';
 	document.getElementById(editorId).innerHTML = newContent;
@@ -395,7 +845,7 @@ function editorUpdateColorChosen(layer) {
 		cName = editSpawnSelected ? lemonEaterHeadClass
 				: lemonWallStrippedClass + editorEditingLevel.fgSelected;
 	} else if (layer == bgId) {
-		// TODO
+		cName = lemonBGStrippedClass + editorEditingLevel.bgSelected;
 	} else
 		return;
 	document.getElementById(editColorSelectedId).className = cName;
@@ -410,8 +860,9 @@ function editorUpdatePoint(x, y, layer) {
 		else
 			cName = lemonWallStrippedClass
 					+ editorEditingLevel.fgLayer[y * 1][x * 1];
+	} else if (layer == bgId) {
+		cName = lemonBGStrippedClass + editorEditingLevel.bgLayer[y * 1][x * 1];
 	} else {
-		// TODO
 		return;
 	}
 	document.getElementById(editCellStrippedId + "x" + x + "y" + y).className = cName;
@@ -454,7 +905,6 @@ function editorColorChooserCellClicked(colorId, layer) {
 		editorEditingLevel.fgSelected = colorId;
 	} else if (layer == bgId) {
 		editorEditingLevel.bgSelected = colorId;
-		// TODO
 	}
 	editSpawnSelected = false;
 	editorUpdateColorChosen(layer);
@@ -481,6 +931,7 @@ function createNewEditingLevel(id, skippable) {
 	editorEditingLevel = new Object();
 	editorEditingLevel.id = id;
 	editorEditingLevel.skippable = skippable;
+	editorEditingLevel.target = 1;
 	editorShowMainLevelScreen();
 }
 
@@ -494,4 +945,11 @@ function editorTranslateStringWithSpaces(oldString) {
 			newStr += translations[c];
 	}
 	return newStr;
+}
+
+function editorTranslateCharIfNeeded(oldChar) {
+	if (translations[oldChar] == null)
+		return oldChar;
+	else
+		return translations[oldChar];
 }

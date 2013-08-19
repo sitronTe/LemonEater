@@ -217,10 +217,10 @@ function editorViewPackXML() {
 		alert("could not view empty pack");
 		return;
 	}
-	// TODO Make it so it looks better on opening. That is find a way to open a
-	// window where the browsers understands it is of XML format, and renders it
-	// thereby.
-	alert(packStr);
+	// TODO This will not work in all browsers, but works with opera and chrome,
+	// and since those are the ones I use, I'll let it stand.
+	var displayXML = window.open("data:text/xml," + encodeURI(packStr));
+	displayXML.focus();
 }
 
 function editorFinishAndRestart() {
